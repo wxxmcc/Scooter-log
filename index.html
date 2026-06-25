@@ -196,6 +196,11 @@
   <div class="app-modal-box">
     <h2>🏍️ 建立你的保養紀錄</h2>
     <p style="font-size:13px;color:var(--muted);margin:0 0 18px;line-height:1.6;">輸入第一台車的資訊，之後可以隨時新增更多車輛。資料存在這個瀏覽器，不會與其他人共用。</p>
+    <div class="frow" style="margin-bottom:10px;">
+      <div><label class="fl">品牌</label><select id="setupBrand"><option value="">— 自行輸入 —</option></select></div>
+      <div><label class="fl">型號</label><select id="setupModel" disabled><option value="">— 先選品牌 —</option></select></div>
+    </div>
+    <div id="setupModelInfo" style="display:none;margin-bottom:10px;background:var(--blue-soft);border-radius:9px;padding:10px 12px;font-size:12.5px;color:var(--blue);line-height:1.6;"></div>
     <div class="frow">
       <div style="grid-column:1/-1"><label class="fl">車型名稱</label><input type="text" id="setupName" placeholder="例：勁戰五代 / R15 / Dink 125"></div>
     </div>
@@ -215,6 +220,11 @@
   <div class="app-modal-box">
     <h2 id="vehicleModalTitle">新增車輛</h2>
     <input type="hidden" id="veId">
+    <div class="frow" style="margin-bottom:10px;">
+      <div><label class="fl">品牌</label><select id="veBrand"><option value="">— 自行輸入 —</option></select></div>
+      <div><label class="fl">型號</label><select id="veModel" disabled><option value="">— 先選品牌 —</option></select></div>
+    </div>
+    <div id="veModelInfo" style="display:none;margin-bottom:10px;background:var(--blue-soft);border-radius:9px;padding:10px 12px;font-size:12.5px;color:var(--blue);line-height:1.6;"></div>
     <div style="margin-bottom:10px;"><label class="fl">車型名稱</label><input type="text" id="veName" placeholder="例：勁戰五代"></div>
     <div class="frow">
       <div><label class="fl">車牌號碼</label><input type="text" id="vePlate" placeholder="例：ABC-1234" style="font-family:'Roboto Mono',monospace;"></div>
@@ -343,6 +353,98 @@
     set: function(k,v){ localStorage.setItem('sm_'+k, JSON.stringify(v)); },
     del: function(k){ localStorage.removeItem('sm_'+k); }
   };
+
+  // ---- Motorcycle DB ----
+  // intervals: oil, gear, air, plug, belt, fork, tire_f, tire_r (km); battery (months)
+  var MOTO_DB = {
+    'Yamaha':{
+      '勁戰一代 Cygnus-X (2002-2007)':{name:'勁戰一代',spec:'Yamaha Cygnus-X 125 · 空冷 SOHC 2V · 油箱 7.2L · 機油 0.85L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
+      '勁戰二代 Cygnus-X (2007-2012)':{name:'勁戰二代',spec:'Yamaha Cygnus-X 125 · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.9L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
+      '勁戰三代 Cygnus-X (2012-2014)':{name:'勁戰三代',spec:'Yamaha Cygnus-X 三代 125 FI · 空冷 SOHC 4V · 油箱 7.4L · 機油 0.9L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
+      '勁戰四代 Cygnus-X SR (2014-2017)':{name:'勁戰四代',spec:'Yamaha Cygnus-X SR 125 FI · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.9L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
+      '勁戰五代 (2018-2021)':{name:'勁戰五代',spec:'Yamaha 勁戰五代 125 FI · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
+      '勁戰六代 (2022-)':{name:'勁戰六代',spec:'Yamaha 勁戰六代 125 FI · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.95L',intervals:{oil:2000,gear:5000,air:6000,plug:10000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
+      'NMAX 155 (2016-2020)':{name:'NMAX 155',spec:'Yamaha NMAX 155 FI · 水冷 SOHC 4V · 油箱 7.1L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
+      'NMAX 155 ABS (2020-)':{name:'NMAX 155 ABS',spec:'Yamaha NMAX 155 FI ABS · 水冷 SOHC 4V · 油箱 7.1L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
+      'AUGUR RX 155 (2022-)':{name:'AUGUR RX 155',spec:'Yamaha AUGUR RX 155 FI · 水冷 SOHC 4V · 油箱 7.1L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
+      'BWSR 125 (2017-)':{name:'BWSR 125',spec:'Yamaha BW\'S R 125 FI · 空冷 SOHC 4V · 油箱 5.5L · 機油 0.9L',intervals:{oil:1500,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
+    },
+    'SYM 三陽':{
+      'Jet SL 125 (2018-)':{name:'Jet SL 125',spec:'SYM Jet SL 125 FI · 空冷 SOHC 4V · 油箱 6.5L · 機油 0.85L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'DRG 158 BT (2019-)':{name:'DRG 158 BT',spec:'SYM DRG 158 FI · 水冷 SOHC 4V · 油箱 8.0L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'MMBCU 158 (2021-)':{name:'MMBCU 158',spec:'SYM MMBCU 158 FI · 水冷 SOHC 4V · 油箱 7.8L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'Mio 110 (2017-)':{name:'Mio 110',spec:'SYM Mio 110 FI · 空冷 SOHC 2V · 油箱 5.5L · 機油 0.8L',intervals:{oil:1500,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:36}},
+      'GTS 300i (2021-)':{name:'GTS 300i',spec:'SYM GTS 300i FI · 水冷 SOHC 4V · 油箱 12.0L · 機油 1.2L',intervals:{oil:3000,gear:6000,air:6000,plug:10000,belt:20000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
+    },
+    'Kymco 光陽':{
+      'GP 125 (2017-)':{name:'GP 125',spec:'Kymco GP 125 FI · 空冷 SOHC 4V · 油箱 6.5L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'Racing S 150 (2019-)':{name:'Racing S 150',spec:'Kymco Racing S 150 FI · 空冷 SOHC 4V · 油箱 7.0L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'Many 125 (2016-)':{name:'Many 125',spec:'Kymco Many 125 FI · 空冷 SOHC 4V · 油箱 6.5L · 機油 0.85L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'G-Dink 300i (2018-)':{name:'G-Dink 300i',spec:'Kymco G-Dink 300i FI · 水冷 SOHC 4V · 油箱 11.0L · 機油 1.3L',intervals:{oil:3000,gear:6000,air:6000,plug:10000,belt:20000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
+      'AK 550 (2017-)':{name:'AK 550',spec:'Kymco AK 550 FI · 水冷 DOHC 4V · 油箱 15.0L · 機油 2.0L',intervals:{oil:5000,gear:8000,air:10000,plug:12000,belt:25000,fork:15000,tire_f:15000,tire_r:18000,battery:36}},
+      'Like 150i (2018-)':{name:'Like 150i',spec:'Kymco Like 150i FI · 空冷 SOHC 4V · 油箱 7.0L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+    },
+    'Honda':{
+      'PCX 125 (2018-)':{name:'PCX 125',spec:'Honda PCX 125 FI · 水冷 SOHC 4V · 油箱 8.1L · 機油 0.9L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'ADV 150 (2019-)':{name:'ADV 150',spec:'Honda ADV 150 FI · 水冷 SOHC 4V · 油箱 8.1L · 機油 0.9L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'ADV 160 (2022-)':{name:'ADV 160',spec:'Honda ADV 160 FI · 水冷 SOHC 4V · 油箱 8.1L · 機油 0.9L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'Forza 350 (2021-)':{name:'Forza 350',spec:'Honda Forza 350 FI · 水冷 SOHC 4V · 油箱 11.5L · 機油 1.6L',intervals:{oil:5000,gear:null,air:8000,plug:16000,belt:25000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
+      'SH 125i (2017-)':{name:'SH 125i',spec:'Honda SH 125i FI · 空冷 SOHC 4V · 油箱 7.0L · 機油 0.85L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+    },
+    'Suzuki':{
+      'Address 110 (2016-)':{name:'Address 110',spec:'Suzuki Address 110 FI · 空冷 SOHC 2V · 油箱 6.0L · 機油 0.9L',intervals:{oil:2000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:36}},
+      'Avenis 125 (2022-)':{name:'Avenis 125',spec:'Suzuki Avenis 125 FI · 空冷 SOHC 4V · 油箱 5.2L · 機油 0.9L',intervals:{oil:2000,gear:4000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+    },
+    'Vespa':{
+      'Sprint 150 (2016-)':{name:'Vespa Sprint 150',spec:'Vespa Sprint 150 FI · 空冷 SOHC 4V · 油箱 8.5L · 機油 1.0L',intervals:{oil:5000,gear:null,air:8000,plug:10000,belt:20000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
+      'GTS 300 HPE (2020-)':{name:'Vespa GTS 300 HPE',spec:'Vespa GTS 300 HPE FI · 水冷 SOHC 4V · 油箱 9.0L · 機油 1.4L',intervals:{oil:6000,gear:null,air:8000,plug:12000,belt:25000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
+    },
+    'Gogoro':{
+      'Gogoro 2 系列':{name:'Gogoro 2',spec:'Gogoro 2 · 電動 · 換電式 · 最大扭矩 25 Nm',intervals:{oil:null,gear:null,air:null,plug:null,belt:null,fork:null,tire_f:12000,tire_r:15000,battery:null}},
+      'Gogoro VIVA 系列':{name:'Gogoro VIVA',spec:'Gogoro VIVA · 電動 · 換電式 · 最大扭矩 20 Nm',intervals:{oil:null,gear:null,air:null,plug:null,belt:null,fork:null,tire_f:12000,tire_r:15000,battery:null}},
+    }
+  };
+
+  function buildBrandSelects(brandId, modelId, infoId){
+    var brandSel=document.getElementById(brandId), modelSel=document.getElementById(modelId);
+    Object.keys(MOTO_DB).forEach(function(b){ brandSel.innerHTML+='<option value="'+b+'">'+b+'</option>'; });
+    brandSel.onchange=function(){
+      var b=brandSel.value;
+      modelSel.innerHTML='<option value="">— 選擇型號 —</option>';
+      if(b && MOTO_DB[b]){
+        Object.keys(MOTO_DB[b]).forEach(function(m){ modelSel.innerHTML+='<option value="'+m+'">'+m+'</option>'; });
+        modelSel.disabled=false;
+      } else { modelSel.disabled=true; document.getElementById(infoId).style.display='none'; }
+    };
+    modelSel.onchange=function(){
+      var b=brandSel.value, m=modelSel.value;
+      var info=document.getElementById(infoId);
+      if(b&&m&&MOTO_DB[b]&&MOTO_DB[b][m]){ info.style.display='block'; info.textContent=''; applyModelInfo(b,m,infoId,null,null,null); }
+      else info.style.display='none';
+    };
+  }
+
+  function applyModelInfo(brand, modelKey, infoId, nameId, specId, intervalsStore){
+    var d=MOTO_DB[brand]&&MOTO_DB[brand][modelKey]; if(!d) return;
+    var info=document.getElementById(infoId);
+    if(info){
+      var iv=d.intervals, parts=[];
+      if(iv.oil) parts.push('機油 '+iv.oil+' km');
+      if(iv.gear) parts.push('齒輪油 '+iv.gear+' km');
+      if(iv.air) parts.push('空濾 '+iv.air+' km');
+      if(iv.plug) parts.push('火星塞 '+iv.plug+' km');
+      if(iv.belt) parts.push('皮帶 '+iv.belt+' km');
+      if(iv.fork) parts.push('前叉油 '+iv.fork+' km');
+      if(iv.battery) parts.push('電瓶建議 '+iv.battery+' 個月更換');
+      info.innerHTML='<b>原廠建議週期</b>　'+parts.join('　·　');
+      info.style.display='block';
+    }
+    if(nameId){ var ne=document.getElementById(nameId); if(ne&&!ne.value) ne.value=d.name; }
+    if(specId){ var se=document.getElementById(specId); if(se) se.value=d.spec; }
+    if(intervalsStore!=null){ intervalsStore.modelIntervals=d.intervals; intervalsStore.modelKey=brand+'|'+modelKey; }
+  }
+
+  var _pendingIntervals={};
 
   var CATS = {
     oil:{label:'機油',color:'#1B4FD0',track:1000},
@@ -538,6 +640,7 @@
   };
   function openVehicleModal(v){
     var isEdit = !!v;
+    _pendingIntervals = {};
     document.getElementById('vehicleModalTitle').textContent = isEdit ? '編輯車輛資訊' : '新增車輛';
     document.getElementById('veId').value = v ? v.id : '';
     document.getElementById('veName').value = v ? v.name||'' : '';
@@ -545,6 +648,20 @@
     document.getElementById('veMileage').value = '';
     document.getElementById('veSpec').value = v ? v.spec||'' : '';
     document.getElementById('veDeleteRow').style.display = isEdit ? 'block' : 'none';
+    // Restore brand/model selection if saved
+    var brandSel=document.getElementById('veBrand'), modelSel=document.getElementById('veModel');
+    var infoEl=document.getElementById('veModelInfo');
+    brandSel.value=''; modelSel.innerHTML='<option value="">— 先選品牌 —</option>'; modelSel.disabled=true; infoEl.style.display='none';
+    if(v && v.modelKey){
+      var parts=v.modelKey.split('|'), brand=parts[0], modelKey=parts[1];
+      if(MOTO_DB[brand]){
+        brandSel.value=brand;
+        modelSel.innerHTML='<option value="">— 選擇型號 —</option>';
+        Object.keys(MOTO_DB[brand]).forEach(function(m){ modelSel.innerHTML+='<option value="'+m+'">'+m+'</option>'; });
+        modelSel.value=modelKey; modelSel.disabled=false;
+        applyModelInfo(brand,modelKey,'veModelInfo',null,null,null);
+      }
+    }
     document.getElementById('vehicleOverlay').classList.add('open');
   }
   document.getElementById('veSaveBtn').onclick = function(){
@@ -553,15 +670,16 @@
     var plate = document.getElementById('vePlate').value.trim().toUpperCase();
     var spec = document.getElementById('veSpec').value.trim();
     var id = document.getElementById('veId').value;
+    var extra = {};
+    if(_pendingIntervals.modelIntervals){ extra.modelIntervals=_pendingIntervals.modelIntervals; extra.modelKey=_pendingIntervals.modelKey; }
+    _pendingIntervals={};
     if(id){
-      // Edit existing
       state.vehicles = state.vehicles.map(function(v){
-        return v.id===id ? Object.assign({},v,{name:name,plate:plate,spec:spec}) : v;
+        return v.id===id ? Object.assign({},v,{name:name,plate:plate,spec:spec},extra) : v;
       });
     } else {
-      // New vehicle
       var nid = uid();
-      state.vehicles.push({id:nid, name:name, plate:plate, spec:spec});
+      state.vehicles.push(Object.assign({id:nid,name:name,plate:plate,spec:spec},extra));
       saveVehicles();
       document.getElementById('vehicleOverlay').classList.remove('open');
       switchVehicle(nid);
@@ -570,6 +688,7 @@
     saveVehicles();
     document.getElementById('vehicleOverlay').classList.remove('open');
     renderVbar(); renderHeader();
+    renderAll();
   };
   document.getElementById('veCancelBtn').onclick = function(){ document.getElementById('vehicleOverlay').classList.remove('open'); };
   document.getElementById('veDeleteBtn').onclick = function(){
@@ -598,7 +717,11 @@
     var plate = document.getElementById('setupPlate').value.trim().toUpperCase();
     var spec = document.getElementById('setupSpec').value.trim();
     var id = uid();
-    state.vehicles = [{id:id,name:name,plate:plate,spec:spec}];
+    var vobj = {id:id,name:name,plate:plate,spec:spec};
+    if(_pendingIntervals.modelIntervals) vobj.modelIntervals=_pendingIntervals.modelIntervals;
+    if(_pendingIntervals.modelKey) vobj.modelKey=_pendingIntervals.modelKey;
+    _pendingIntervals={};
+    state.vehicles = [vobj];
     saveVehicles();
     S.set('records_'+id, []);
     S.set('fuel_'+id, []);
@@ -685,22 +808,43 @@
   function monthsBetween(d){ if(!d)return null; var dt=new Date(d); if(isNaN(dt))return null; var n=new Date(); return Math.max(0,(n.getFullYear()-dt.getFullYear())*12+(n.getMonth()-dt.getMonth())); }
   function fmtAge(m){ return m>=12?(m/12).toFixed(1)+' 年':m+' 個月'; }
   function voltHealth(v){ if(v>=12.7)return{label:'健康',color:'#2E7D52'}; if(v>=12.4)return{label:'普通',color:'#B5781A'}; return{label:'偏弱',color:'#C0392B'}; }
+  function activeIntervals(){
+    var v=state.vehicles.find(function(v){return v.id===state.activeId;});
+    return (v&&v.modelIntervals)||{};
+  }
+  function resolveTrack(item){
+    // Vehicle-specific intervals override defaults
+    var iv=activeIntervals();
+    if(item.cat){
+      var map={oil:'oil',gear:'gear',air:'air',plug:'plug',fork:'fork',tire_f:'tire_f',tire_r:'tire_r'};
+      if(map[item.cat]!=null && iv[map[item.cat]]!=null) return iv[map[item.cat]];
+      return CATS[item.cat].track;
+    }
+    // regex items: map by label pattern
+    if(/皮帶/.test(item.label||'') && iv.belt!=null) return iv.belt;
+    if(/前叉/.test(item.label||'') && iv.fork!=null) return iv.fork;
+    return item.track;
+  }
   function resolveItem(item){
     if(item.timeBased){
+      var iv=activeIntervals();
+      var trackM=iv.battery||item.trackMonths;
       var blast=item.cat?latestOf(item.cat):latestMatch(item.re);
       var ms=blast?monthsBetween(blast.date):null;
       var volt=null; if(blast){var vm=((blast.note||'')+' '+(blast.item||'')).match(/(\d{1,2}(?:\.\d)?)\s*[vV]/);if(vm)volt=parseFloat(vm[1]);}
-      return{label:item.cat?CATS[item.cat].label:item.label,color:item.color||(item.cat?CATS[item.cat].color:'#5B6470'),timeBased:true,trackMonths:item.trackMonths,last:blast,model:blast?cleanModel(blast.item):'',monthsSince:ms,ratio:ms==null?null:ms/item.trackMonths,volt:volt};
+      return{label:item.cat?CATS[item.cat].label:item.label,color:item.color||(item.cat?CATS[item.cat].color:'#5B6470'),timeBased:true,trackMonths:trackM,last:blast,model:blast?cleanModel(blast.item):'',monthsSince:ms,ratio:ms==null?null:ms/trackM,volt:volt};
     }
     var label,color,track,last,model;
     if(item.cat){
-      var c=CATS[item.cat];if(!c.track)return null;
-      label=c.label;color=c.color;track=c.track;last=lastOf(item.cat);
+      var c=CATS[item.cat];
+      track=resolveTrack(item);if(!track)return null;
+      label=c.label;color=c.color;last=lastOf(item.cat);
       var l2=latestOf(item.cat);model=l2?cleanModel(l2.item):'';
     }else{
-      label=item.label;color=item.color;track=item.track;last=lastMatch(item.re);
+      label=item.label;color=item.color;track=resolveTrack(item);last=lastMatch(item.re);
       if(last){if(item.rollers){var pr=parseRollers(last.item);var pf=/原廠/.test(last.item)?'原廠 ':'';model=pr?pf+pr.text+'　('+pr.count+'顆/'+pr.total+'g)':cleanModel(last.item);}else model=cleanModel(last.item);}else model='';
     }
+    if(!track)return null;
     var cur=currentMileage(),since=last?cur-last.mileage:null;
     return{label:label,color:color,track:track,last:last,model:model,since:since,ratio:since==null?null:since/track};
   }
@@ -932,6 +1076,20 @@
   document.getElementById('search').oninput=function(e){state.search=e.target.value;renderList();};
 
   function renderAll(){renderStats();renderReminders();renderSpec();renderCostBars();renderMonthly();renderFuel();renderFilters();renderList();}
+
+  // Wire up brand/model dropdowns
+  buildBrandSelects('setupBrand','setupModel','setupModelInfo');
+  buildBrandSelects('veBrand','veModel','veModelInfo');
+
+  // When setup model changes, also fill name/spec
+  document.getElementById('setupModel').addEventListener('change',function(){
+    var b=document.getElementById('setupBrand').value, m=this.value;
+    applyModelInfo(b,m,'setupModelInfo','setupName','setupSpec',_pendingIntervals);
+  });
+  document.getElementById('veModel').addEventListener('change',function(){
+    var b=document.getElementById('veBrand').value, m=this.value;
+    applyModelInfo(b,m,'veModelInfo','veName','veSpec',_pendingIntervals);
+  });
 
   fillCatSelect();
   init();
