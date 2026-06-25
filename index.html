@@ -69,7 +69,11 @@
 #app-root .syshead{font-size:12px;font-weight:700;color:var(--ink);letter-spacing:1.5px;margin:0 0 10px;display:flex;align-items:center;gap:9px;}
 #app-root .sysbar{width:4px;height:15px;border-radius:2px;display:inline-block;}
 #app-root .glast{font-size:10.5px;color:var(--muted);margin-top:5px;font-family:'Roboto Mono',monospace;}
-#app-root .gauge{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;}
+#app-root .gauge{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s;}
+#app-root .gauge:hover{border-color:var(--blue);box-shadow:0 2px 10px rgba(27,79,208,.12);}
+#app-root .gauge:active{transform:scale(.99);}
+#app-root .gauge .gedit{float:right;font-size:11px;color:var(--blue);opacity:0;transition:opacity .15s;}
+#app-root .gauge:hover .gedit{opacity:1;}
 #app-root .gauge .gtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
 #app-root .gauge .gname{font-size:14px;font-weight:500;}
 #app-root .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
@@ -266,7 +270,7 @@
   <div class="section">
     <h2><span class="dot"></span>保養提醒</h2>
     <div id="reminders"></div>
-    <div class="note">依車輛系統分類，各項目以「最近一次更換里程」與建議週期估算損耗。沒紀錄的項目，之後更換時在內容含對應名稱（如「前來令片」）即可自動追蹤。</div>
+    <div class="note">💡 點任一項目卡片即可快速登記更換（自動帶入分類與里程）。各項目以「最近一次更換里程」與建議週期估算損耗。沒紀錄的項目，之後更換時在內容含對應名稱（如「前來令片」）即可自動追蹤。</div>
   </div>
 
   <div class="section">
@@ -1057,6 +1061,29 @@
     var cur=currentMileage(),since=last?cur-last.mileage:null;
     return{label:label,color:color,track:track,last:last,model:model,since:since,ratio:since==null?null:since/track};
   }
+  // 把提醒項目對應到「新增紀錄」的分類
+  function itemCat(item){
+    if(item.cat) return item.cat;
+    var L=item.label||'';
+    if(/皮帶|普利|離合|碗公|滑件|楓葉|海綿|傳動/.test(L)) return 'trans';
+    if(/煞車|來令|碟盤|蹄片/.test(L)) return 'brake';
+    if(/冷卻|水箱/.test(L)) return 'coolant';
+    if(/前叉/.test(L)) return 'fork';
+    return 'mod';
+  }
+  // 點擊耗材卡片 → 跳到新增紀錄並帶入分類
+  function startRecordFor(cat,label){
+    resetForm();
+    var sel=document.getElementById('fCat');
+    if([].some.call(sel.options,function(o){return o.value===cat;})) sel.value=cat;
+    var fd=document.getElementById('fDate'); if(!fd.value){var d=new Date();fd.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+    var fm=document.getElementById('fMileage'); if(!fm.value){var cm=currentMileage();if(cm)fm.value=cm;}
+    var fi=document.getElementById('fItem');
+    fi.placeholder='登記更換「'+(label||'')+'」的型號／規格';
+    var card=sel.closest('.card');
+    (card||fi).scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(function(){fi.focus();},300);
+  }
   function gaugeCard(item){
     var r=resolveItem(item);if(!r)return'';
     var pct=r.ratio==null?0:Math.min(r.ratio,1)*100;
@@ -1073,7 +1100,7 @@
       right=(item.ref?'參考 ':'週期 ')+fmtNum(r.track);
       lastInfo=r.last?'上次 '+fmtNum(r.last.mileage)+' km'+(r.last.date?'（'+r.last.date.slice(0,7)+'）':''):'';
     }
-    return'<div class="gauge"><div class="gtop"><span class="gname">'+r.label+'</span><span class="badge '+cls+'">'+txt+'</span></div>'
+    return'<div class="gauge" data-cat="'+itemCat(item)+'" data-label="'+esc(r.label)+'"><div class="gtop"><span class="gname">'+r.label+' <span class="gedit">✎ 登記</span></span><span class="badge '+cls+'">'+txt+'</span></div>'
       +'<div class="gmodel" title="'+esc(r.model)+'">'+(r.model?'目前 <b>'+esc(r.model)+'</b>':'<span style="opacity:.6">未記錄型號</span>')+'</div>'
       +'<div class="track"><div class="fill" style="width:'+pct+'%;background:'+bg+';"></div></div>'
       +'<div class="gmeta"><span class="km">'+left+'</span><span>'+right+'</span></div>'
@@ -1088,7 +1115,12 @@
       var cards=sys.items.map(gaugeCard).join('');
       html+='<div class="sysgroup"><div class="syshead"><span class="sysbar" style="background:'+sys.color+';"></span>'+sys.name+'</div><div class="gauges">'+cards+'</div></div>';
     });
-    document.getElementById('reminders').innerHTML=html;
+    var rem=document.getElementById('reminders');
+    rem.innerHTML=html;
+    rem.onclick=function(e){
+      var g=e.target.closest('.gauge'); if(!g)return;
+      startRecordFor(g.getAttribute('data-cat'),g.getAttribute('data-label'));
+    };
   }
 
   // ---- Render: Spec ----
