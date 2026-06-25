@@ -10,21 +10,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
 <style>
 #app-root{
-  --paper:#F4F2EC; --surface:#FFFFFF; --ink:#16181D; --muted:#6B6E76;
-  --line:#E5E2DA; --line2:#D8D4CA; --blue:#1B4FD0; --blue-soft:#EAF0FF;
-  --green:#2E7D52; --amber:#B5781A; --red:#C0392B;
+  --paper:#F4F2EC;--surface:#FFFFFF;--ink:#16181D;--muted:#6B6E76;
+  --line:#E5E2DA;--line2:#D8D4CA;--blue:#1B4FD0;--blue-soft:#EAF0FF;
+  --green:#2E7D52;--amber:#B5781A;--red:#C0392B;
   font-family:'Noto Sans TC',-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;
-  color:var(--ink); background:var(--paper); display:block; width:100%;
-  -webkit-font-smoothing:antialiased; box-sizing:border-box;
+  color:var(--ink);background:var(--paper);display:block;width:100%;
+  -webkit-font-smoothing:antialiased;box-sizing:border-box;
 }
 #app-root *{box-sizing:border-box;}
 #app-root .mono{font-family:'Roboto Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
-#app-root .wrap{max-width:760px;margin:0 auto;padding:20px 16px 40px;}
+#app-root .wrap{max-width:760px;margin:0 auto;padding:16px 16px 40px;}
 
-#app-root .topbar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px;}
+/* Vehicle switcher bar */
+#app-root .vbar{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;margin-bottom:0;}
+#app-root .vbar-inner{max-width:760px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;}
+#app-root .vbar-inner::-webkit-scrollbar{display:none;}
+#app-root .vtab{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:11px 14px;font-size:13px;font-weight:500;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.12s;user-select:none;}
+#app-root .vtab:hover{color:var(--ink);}
+#app-root .vtab.active{color:var(--ink);border-bottom-color:var(--ink);}
+#app-root .vtab .vplate{font-family:'Roboto Mono',monospace;font-size:11px;background:var(--line);padding:1px 6px;border-radius:3px;}
+#app-root .vtab.active .vplate{background:var(--ink);color:#fff;}
+#app-root .vadd{flex-shrink:0;padding:11px 12px;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;transition:.12s;}
+#app-root .vadd:hover{color:var(--blue);}
+
+#app-root .topbar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px;margin-top:18px;}
 #app-root .plate{font-family:'Roboto Mono',monospace;font-weight:700;font-size:15px;letter-spacing:1px;
   background:var(--ink);color:#F4F2EC;padding:4px 10px;border-radius:5px;cursor:pointer;}
 #app-root .model{font-size:13px;color:var(--muted);}
@@ -41,6 +53,7 @@
 #app-root .stat .k{font-size:11px;color:var(--muted);margin-bottom:3px;}
 #app-root .stat .v{font-size:18px;font-weight:700;}
 #app-root .stat .v small{font-size:12px;font-weight:400;color:var(--muted);}
+#app-root .stat .v .estsub{font-size:11px;font-weight:400;color:var(--muted);margin-top:2px;}
 
 #app-root h2{font-size:15px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px;}
 #app-root h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--blue);}
@@ -136,7 +149,6 @@
 #app-root .rec .rcost{font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;white-space:nowrap;}
 #app-root .rec .rcost.none{color:var(--line2);font-weight:400;}
 #app-root .rec .rcost.est{color:var(--muted);font-weight:400;font-family:'Roboto Mono',monospace;font-size:12.5px;}
-#app-root .stat .v .estsub{font-size:11px;font-weight:400;color:var(--muted);margin-top:2px;}
 #app-root .rec .ritem{font-size:13.5px;color:var(--ink);margin:3px 0 4px;word-break:break-word;}
 #app-root .rec .rmeta{display:flex;gap:12px;font-size:11.5px;color:var(--muted);align-items:center;}
 #app-root .rec .rmeta .mil{font-family:'Roboto Mono',monospace;}
@@ -154,32 +166,20 @@
 #app-root .note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.6;}
 #app-root .empty{text-align:center;color:var(--muted);font-size:13px;padding:28px 0;}
 
-/* Setup modal */
-#setupOverlay{
-  display:none;position:fixed;inset:0;background:rgba(22,24,29,0.7);z-index:200;
+/* Modals */
+.app-modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(22,24,29,0.65);z-index:200;
   align-items:center;justify-content:center;padding:16px;
 }
-#setupOverlay.open{display:flex;}
-#setupBox{
-  background:var(--surface);border-radius:18px;padding:28px 24px;width:100%;max-width:460px;
-  box-shadow:0 8px 40px rgba(0,0,0,0.18);
+.app-modal-overlay.open{display:flex;}
+.app-modal-box{
+  background:var(--surface);border-radius:18px;padding:24px;width:100%;max-width:460px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;
 }
-#setupBox h2{font-size:18px;font-weight:700;margin:0 0 6px;}
-#setupBox p{font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.6;}
-#setupBox .setup-form .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-#setupBox .setup-divider{text-align:center;font-size:12px;color:var(--muted);margin:16px 0;position:relative;}
-#setupBox .setup-divider::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line);}
-#setupBox .setup-divider span{background:var(--surface);padding:0 10px;position:relative;}
-#setupBox .demo-btn{width:100%;text-align:center;justify-content:center;display:flex;}
-
-/* Vehicle edit modal */
-#vehicleOverlay{
-  display:none;position:fixed;inset:0;background:rgba(22,24,29,0.6);z-index:200;
-  align-items:center;justify-content:center;padding:16px;
-}
-#vehicleOverlay.open{display:flex;}
-#vehicleBox{background:var(--surface);border-radius:18px;padding:24px;width:100%;max-width:420px;}
-#vehicleBox h2{font-size:16px;font-weight:700;margin:0 0 16px;}
+.app-modal-box h2{font-size:17px;font-weight:700;margin:0 0 16px;}
+.app-modal-box .setup-divider{text-align:center;font-size:12px;color:var(--muted);margin:16px 0;position:relative;}
+.app-modal-box .setup-divider::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line);}
+.app-modal-box .setup-divider span{background:var(--surface);padding:0 10px;position:relative;}
 
 @media(max-width:560px){
   #app-root .stats{grid-template-columns:repeat(2,1fr);}
@@ -187,49 +187,56 @@
   #app-root .odo-num{font-size:34px;}
   #app-root .srow{grid-template-columns:78px 1fr;}
   #app-root .smeta{grid-column:2;text-align:left;}
-  #setupBox .setup-form .frow{grid-template-columns:1fr;}
+  .app-modal-box .frow{grid-template-columns:1fr;}
 }
 </style>
 
-<!-- Setup modal -->
-<div id="setupOverlay">
-  <div id="setupBox">
+<!-- First-time setup modal -->
+<div class="app-modal-overlay" id="setupOverlay">
+  <div class="app-modal-box">
     <h2>🏍️ 建立你的保養紀錄</h2>
-    <p>輸入你的車輛資訊，開始記錄保養歷史。資料存在這個瀏覽器，不會與其他人共用。</p>
-    <div class="setup-form">
-      <div style="margin-bottom:10px;"><label class="fl">車型名稱</label><input type="text" id="setupName" placeholder="例：勁戰五代 / R15 / Dink 125"></div>
-      <div class="frow">
-        <div><label class="fl">車牌號碼</label><input type="text" id="setupPlate" placeholder="例：ABC-1234" style="font-family:'Roboto Mono',monospace;"></div>
-        <div><label class="fl">目前里程 (km)</label><input type="number" id="setupMileage" class="mono" placeholder="例：12500"></div>
-      </div>
-      <div style="margin-bottom:16px;"><label class="fl">車輛規格說明（可選）</label><input type="text" id="setupSpec" placeholder="例：125cc FI · 水冷 · 油箱 7.2L"></div>
-      <button class="btn btn-primary" id="setupSaveBtn" style="width:100%;justify-content:center;display:flex;">開始使用</button>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 18px;line-height:1.6;">輸入第一台車的資訊，之後可以隨時新增更多車輛。資料存在這個瀏覽器，不會與其他人共用。</p>
+    <div class="frow">
+      <div style="grid-column:1/-1"><label class="fl">車型名稱</label><input type="text" id="setupName" placeholder="例：勁戰五代 / R15 / Dink 125"></div>
     </div>
+    <div class="frow">
+      <div><label class="fl">車牌號碼</label><input type="text" id="setupPlate" placeholder="例：ABC-1234" style="font-family:'Roboto Mono',monospace;"></div>
+      <div><label class="fl">目前里程 (km)</label><input type="number" id="setupMileage" class="mono" placeholder="例：12500"></div>
+    </div>
+    <div style="margin-bottom:16px;"><label class="fl">車輛規格說明（可選）</label><input type="text" id="setupSpec" placeholder="例：125cc FI · 水冷 · 油箱 7.2L"></div>
+    <button class="btn btn-primary" id="setupSaveBtn" style="width:100%;justify-content:center;display:flex;">開始使用</button>
     <div class="setup-divider"><span>或者</span></div>
-    <button class="btn demo-btn" id="setupDemoBtn">載入範例資料（勁戰三代）</button>
+    <button class="btn" id="setupDemoBtn" style="width:100%;justify-content:center;display:flex;">載入範例資料（勁戰三代）</button>
   </div>
 </div>
 
-<!-- Vehicle edit modal -->
-<div id="vehicleOverlay">
-  <div id="vehicleBox">
-    <h2>編輯車輛資訊</h2>
-    <div style="margin-bottom:10px;"><label class="fl">車型名稱</label><input type="text" id="veName"></div>
+<!-- Add / Edit vehicle modal -->
+<div class="app-modal-overlay" id="vehicleOverlay">
+  <div class="app-modal-box">
+    <h2 id="vehicleModalTitle">新增車輛</h2>
+    <input type="hidden" id="veId">
+    <div style="margin-bottom:10px;"><label class="fl">車型名稱</label><input type="text" id="veName" placeholder="例：勁戰五代"></div>
     <div class="frow">
-      <div><label class="fl">車牌號碼</label><input type="text" id="vePlate" style="font-family:'Roboto Mono',monospace;"></div>
-      <div><label class="fl">目前里程 (km)</label><input type="number" id="veMileage" class="mono"></div>
+      <div><label class="fl">車牌號碼</label><input type="text" id="vePlate" placeholder="例：ABC-1234" style="font-family:'Roboto Mono',monospace;"></div>
+      <div><label class="fl">目前里程 (km，可選)</label><input type="number" id="veMileage" class="mono" placeholder="例：8000"></div>
     </div>
-    <div style="margin-bottom:16px;"><label class="fl">車輛規格說明（可選）</label><input type="text" id="veSpec"></div>
+    <div style="margin-bottom:16px;"><label class="fl">車輛規格說明（可選）</label><input type="text" id="veSpec" placeholder="例：150cc · 水冷 · 油箱 10L"></div>
     <div class="btn-row">
       <button class="btn btn-primary" id="veSaveBtn">儲存</button>
       <button class="btn" id="veCancelBtn">取消</button>
     </div>
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
-      <button class="btn" id="veResetBtn" style="color:var(--red);border-color:#e8c9c4;width:100%;justify-content:center;display:flex;">清除所有資料並重設</button>
+    <div id="veDeleteRow" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
+      <button class="btn" id="veDeleteBtn" style="color:var(--red);border-color:#e8c9c4;width:100%;justify-content:center;display:flex;">刪除這台車及所有紀錄</button>
     </div>
   </div>
 </div>
 
+<!-- Vehicle switcher bar -->
+<div class="vbar">
+  <div class="vbar-inner" id="vbarInner"></div>
+</div>
+
+<!-- Main app -->
 <div class="wrap" id="mainApp" style="display:none;">
   <div class="topbar">
     <div>
@@ -249,7 +256,7 @@
   <div class="section">
     <h2><span class="dot"></span>保養提醒</h2>
     <div id="reminders"></div>
-    <div class="note">依車輛系統分類，各項目以「最近一次更換里程」與建議週期估算損耗。沒紀錄的項目，之後更換時在內容含對應名稱（如「前來令片」）即可自動追蹤。週期為預設值，可自行調整。</div>
+    <div class="note">依車輛系統分類，各項目以「最近一次更換里程」與建議週期估算損耗。沒紀錄的項目，之後更換時在內容含對應名稱（如「前來令片」）即可自動追蹤。</div>
   </div>
 
   <div class="section">
@@ -287,7 +294,7 @@
   <div class="section">
     <h2><span class="dot"></span>每月里程</h2>
     <div class="card"><div id="monthly"></div></div>
-    <div class="note">用各筆里程讀數推算每月騎乘量：兩次讀數之間的距離按天數攤分到中間各月。記錄間隔長的月份會被平均掉，且部分里程為約估值，數字僅供參考趨勢。</div>
+    <div class="note">用各筆里程讀數推算每月騎乘量，按天數攤分。數字僅供參考趨勢。</div>
   </div>
 
   <div class="section">
@@ -305,7 +312,7 @@
       </div>
       <div class="frow">
         <div><label class="fl">折抵金額 (NT$，可空)</label><input type="number" step="0.1" class="mono" id="fuDiscount" placeholder="例 5"></div>
-        <div><label class="fl">行駛距離 (km，里程可算時可空)</label><input type="number" class="mono" id="fuDistance" placeholder="例 170"></div>
+        <div><label class="fl">行駛距離 (km，可空)</label><input type="number" class="mono" id="fuDistance" placeholder="例 170"></div>
       </div>
       <div style="margin-bottom:6px;"><label class="fl">備註</label><input type="text" id="fuNote" placeholder="油種、加油站…"></div>
       <div class="btn-row">
@@ -314,7 +321,7 @@
       </div>
     </div>
     <div class="card" style="padding:4px 16px;margin-top:12px;"><div id="fuelList"></div></div>
-    <div class="note">油耗 = 行駛距離 ÷ 加油公升數。若每次都填加油時里程，距離會自動以「這次里程 − 上次里程」計算（填到滿才準）；否則用手動距離。</div>
+    <div class="note">油耗 = 行駛距離 ÷ 加油公升數。若每次都填加油時里程，距離會自動以「這次里程 − 上次里程」計算；否則用手動距離。</div>
   </div>
 
   <div class="section">
@@ -330,10 +337,11 @@
 
 <script>
 (function(){
-  var storage = {
-    get: function(key){ return Promise.resolve({value: localStorage.getItem('scooter_'+key)}); },
-    set: function(key, val){ try{ localStorage.setItem('scooter_'+key, val); }catch(e){} return Promise.resolve(); },
-    del: function(key){ localStorage.removeItem('scooter_'+key); }
+  // ---- Storage ----
+  var S = {
+    get: function(k){ return JSON.parse(localStorage.getItem('sm_'+k)||'null'); },
+    set: function(k,v){ localStorage.setItem('sm_'+k, JSON.stringify(v)); },
+    del: function(k){ localStorage.removeItem('sm_'+k); }
   };
 
   var CATS = {
@@ -352,7 +360,7 @@
     check:{label:'檢查',color:'#8A8D94',track:null}
   };
 
-  var DEMO_SEED = [
+  var DEMO_RECORDS = [
     ['2019-10-31',33131,'air','空濾$105 / 小海綿$50',155,''],
     ['2019-11-04',null,'brake','倒插叉 / 對四卡鉗 / 260碟盤 / 後避震',null,''],
     ['2019-11-06',null,'mod','電門過電線組 / USB充電器',null,''],
@@ -433,24 +441,54 @@
     ['2026-06-22',64456,'brake','前來令片',null,'']
   ];
 
-  var state = {records:[], fuel:[], filter:'all', search:'', vehicle:{name:'',plate:'',spec:''}};
+  // ---- App state ----
+  // vehicles: [{id, name, plate, spec}]
+  // active vehicle id
+  // per-vehicle: records, fuel stored as sm_records_{id}, sm_fuel_{id}
 
-  function fmtNum(n){return Math.round(n).toLocaleString('en-US');}
-  function fmtMoney(n){return 'NT$'+Math.round(n).toLocaleString('en-US');}
-  function esc(s){return String(s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+  var state = {
+    vehicles: [],
+    activeId: null,
+    records: [],
+    fuel: [],
+    filter: 'all',
+    search: ''
+  };
 
-  async function save(){ try{ await storage.set('records', JSON.stringify(state.records)); }catch(e){} }
-  async function saveFuel(){ try{ await storage.set('fuel', JSON.stringify(state.fuel)); }catch(e){} }
-  async function saveVehicle(){ try{ await storage.set('vehicle', JSON.stringify(state.vehicle)); }catch(e){} }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+  function fmtNum(n){ return Math.round(n).toLocaleString('en-US'); }
+  function fmtMoney(n){ return 'NT$'+Math.round(n).toLocaleString('en-US'); }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];}); }
 
-  async function load(){
-    var vRes = await storage.get('vehicle');
-    if(vRes && vRes.value){
-      state.vehicle = JSON.parse(vRes.value);
-      var rRes = await storage.get('records');
-      state.records = (rRes && rRes.value) ? JSON.parse(rRes.value) : [];
-      var fRes = await storage.get('fuel');
-      state.fuel = (fRes && fRes.value) ? JSON.parse(fRes.value) : [];
+  function saveVehicles(){ S.set('vehicles', state.vehicles); }
+  function saveActiveId(){ S.set('activeId', state.activeId); }
+  function saveRecords(){ S.set('records_'+state.activeId, state.records); }
+  function saveFuel(){ S.set('fuel_'+state.activeId, state.fuel); }
+
+  function loadVehicleData(id){
+    state.records = S.get('records_'+id) || [];
+    state.fuel = S.get('fuel_'+id) || [];
+    state.filter = 'all'; state.search = '';
+    var el = document.getElementById('search'); if(el) el.value = '';
+  }
+
+  function switchVehicle(id){
+    state.activeId = id;
+    saveActiveId();
+    loadVehicleData(id);
+    renderVbar();
+    renderHeader();
+    renderAll();
+  }
+
+  // ---- Init ----
+  function init(){
+    var vehicles = S.get('vehicles');
+    if(vehicles && vehicles.length){
+      state.vehicles = vehicles;
+      var aid = S.get('activeId');
+      state.activeId = (aid && state.vehicles.find(function(v){return v.id===aid;})) ? aid : state.vehicles[0].id;
+      loadVehicleData(state.activeId);
       showApp();
     } else {
       document.getElementById('setupOverlay').classList.add('open');
@@ -459,140 +497,129 @@
 
   function showApp(){
     document.getElementById('setupOverlay').classList.remove('open');
-    document.getElementById('mainApp').style.display='block';
+    document.getElementById('mainApp').style.display = 'block';
+    renderVbar();
     renderHeader();
     renderAll();
   }
 
-  // ---- Setup ----
-  document.getElementById('setupSaveBtn').onclick = async function(){
-    var name = document.getElementById('setupName').value.trim();
-    var plate = document.getElementById('setupPlate').value.trim().toUpperCase();
-    var spec = document.getElementById('setupSpec').value.trim();
-    if(!name){ document.getElementById('setupName').focus(); return; }
-    state.vehicle = {name:name, plate:plate, spec:spec};
-    state.records = []; state.fuel = [];
-    await saveVehicle(); await save(); await saveFuel();
-    showApp();
-  };
-
-  document.getElementById('setupDemoBtn').onclick = async function(){
-    state.vehicle = {name:'勁戰三代', plate:'ABC-1234', spec:'Yamaha Cygnus-X 三代 125 FI · 空冷 SOHC 4V · 油箱 7.4L'};
-    state.records = DEMO_SEED.map(function(r,i){ return {id:'d'+i,date:r[0],mileage:r[1],cat:r[2],item:r[3],cost:r[4],note:r[5]}; });
-    state.fuel = [{id:'f0',date:'2026-06-18',mileage:null,liters:6.06,price:32.4,discount:5,distance:170,note:'92無鉛'}];
-    await saveVehicle(); await save(); await saveFuel();
-    showApp();
-  };
-
-  // ---- Vehicle edit ----
-  document.getElementById('appPlate').onclick = function(){ openVehicleEdit(); };
-  function openVehicleEdit(){
-    document.getElementById('veName').value = state.vehicle.name||'';
-    document.getElementById('vePlate').value = state.vehicle.plate||'';
-    document.getElementById('veMileage').value = '';
-    document.getElementById('veSpec').value = state.vehicle.spec||'';
-    document.getElementById('vehicleOverlay').classList.add('open');
+  // ---- Vehicle bar ----
+  function renderVbar(){
+    var html = '';
+    state.vehicles.forEach(function(v){
+      var active = v.id === state.activeId;
+      html += '<div class="vtab'+(active?' active':'')+'" data-vid="'+v.id+'">'
+        + esc(v.name||'車輛')
+        + (v.plate ? ' <span class="vplate">'+esc(v.plate)+'</span>' : '')
+        + '</div>';
+    });
+    html += '<div class="vadd" id="vAddBtn" title="新增車輛">＋</div>';
+    var bar = document.getElementById('vbarInner');
+    bar.innerHTML = html;
+    Array.prototype.forEach.call(bar.querySelectorAll('.vtab'), function(el){
+      el.onclick = function(){ switchVehicle(el.getAttribute('data-vid')); };
+    });
+    bar.querySelector('#vAddBtn').onclick = function(){ openVehicleModal(null); };
   }
-  document.getElementById('veSaveBtn').onclick = async function(){
-    state.vehicle.name = document.getElementById('veName').value.trim();
-    state.vehicle.plate = document.getElementById('vePlate').value.trim().toUpperCase();
-    state.vehicle.spec = document.getElementById('veSpec').value.trim();
-    await saveVehicle();
-    document.getElementById('vehicleOverlay').classList.remove('open');
-    renderHeader();
-  };
-  document.getElementById('veCancelBtn').onclick = function(){ document.getElementById('vehicleOverlay').classList.remove('open'); };
-  document.getElementById('veResetBtn').onclick = async function(){
-    if(!confirm('確定要清除所有紀錄並重設？此操作無法復原。')) return;
-    storage.del('records'); storage.del('fuel'); storage.del('vehicle');
-    location.reload();
-  };
 
   function renderHeader(){
-    var v = state.vehicle;
-    document.getElementById('appTitle').textContent = (v.name||'保養紀錄') + ' · 保養紀錄';
+    var v = state.vehicles.find(function(v){return v.id===state.activeId;});
+    if(!v) return;
+    document.getElementById('appTitle').textContent = (v.name||'車輛') + ' · 保養紀錄';
     document.getElementById('appPlate').textContent = v.plate||'—';
     document.getElementById('appSpec').textContent = v.spec||'';
     document.title = (v.name||'摩托車') + ' · 保養紀錄';
   }
 
-  // ---- Fuel ----
-  function fuelSorted(){
-    return state.fuel.slice().sort(function(a,b){
-      if(a.mileage!=null && b.mileage!=null) return a.mileage-b.mileage;
-      if(a.mileage!=null) return 1; if(b.mileage!=null) return -1;
-      return (a.date||'').localeCompare(b.date||'');
-    });
+  // ---- Vehicle modal ----
+  document.getElementById('appPlate').onclick = function(){
+    var v = state.vehicles.find(function(v){return v.id===state.activeId;});
+    if(v) openVehicleModal(v);
+  };
+  function openVehicleModal(v){
+    var isEdit = !!v;
+    document.getElementById('vehicleModalTitle').textContent = isEdit ? '編輯車輛資訊' : '新增車輛';
+    document.getElementById('veId').value = v ? v.id : '';
+    document.getElementById('veName').value = v ? v.name||'' : '';
+    document.getElementById('vePlate').value = v ? v.plate||'' : '';
+    document.getElementById('veMileage').value = '';
+    document.getElementById('veSpec').value = v ? v.spec||'' : '';
+    document.getElementById('veDeleteRow').style.display = isEdit ? 'block' : 'none';
+    document.getElementById('vehicleOverlay').classList.add('open');
   }
-  function fuelTotal(f){ return (f.liters||0)*(f.price||0)-(f.discount||0); }
-  function fuelDistance(f,asc,idx){
-    if(f.mileage!=null){ for(var i=idx-1;i>=0;i--){ if(asc[i].mileage!=null) return f.mileage-asc[i].mileage; } }
-    return f.distance!=null?f.distance:null;
-  }
-  function fuelKmL(f,asc,idx){ var d=fuelDistance(f,asc,idx); return (d!=null&&f.liters)?d/f.liters:null; }
+  document.getElementById('veSaveBtn').onclick = function(){
+    var name = document.getElementById('veName').value.trim();
+    if(!name){ document.getElementById('veName').focus(); return; }
+    var plate = document.getElementById('vePlate').value.trim().toUpperCase();
+    var spec = document.getElementById('veSpec').value.trim();
+    var id = document.getElementById('veId').value;
+    if(id){
+      // Edit existing
+      state.vehicles = state.vehicles.map(function(v){
+        return v.id===id ? Object.assign({},v,{name:name,plate:plate,spec:spec}) : v;
+      });
+    } else {
+      // New vehicle
+      var nid = uid();
+      state.vehicles.push({id:nid, name:name, plate:plate, spec:spec});
+      saveVehicles();
+      document.getElementById('vehicleOverlay').classList.remove('open');
+      switchVehicle(nid);
+      return;
+    }
+    saveVehicles();
+    document.getElementById('vehicleOverlay').classList.remove('open');
+    renderVbar(); renderHeader();
+  };
+  document.getElementById('veCancelBtn').onclick = function(){ document.getElementById('vehicleOverlay').classList.remove('open'); };
+  document.getElementById('veDeleteBtn').onclick = function(){
+    var id = document.getElementById('veId').value;
+    if(!id) return;
+    var v = state.vehicles.find(function(v){return v.id===id;});
+    if(!confirm('確定刪除「'+(v?v.name:'這台車')+'」及所有紀錄？此操作無法復原。')) return;
+    S.del('records_'+id); S.del('fuel_'+id);
+    state.vehicles = state.vehicles.filter(function(v){return v.id!==id;});
+    saveVehicles();
+    document.getElementById('vehicleOverlay').classList.remove('open');
+    if(state.vehicles.length){
+      switchVehicle(state.vehicles[0].id);
+    } else {
+      S.del('activeId');
+      document.getElementById('mainApp').style.display='none';
+      document.getElementById('vbarInner').innerHTML='';
+      document.getElementById('setupOverlay').classList.add('open');
+    }
+  };
 
-  function renderFuel(){
-    var asc=fuelSorted(), totCost=0, validDist=0, validLiters=0;
-    asc.forEach(function(f,i){ totCost+=fuelTotal(f); var d=fuelDistance(f,asc,i); if(d!=null&&f.liters){validDist+=d;validLiters+=f.liters;} });
-    var avg=validLiters>0?validDist/validLiters:null, perKm=validDist>0?totCost/validDist:null;
-    var s='';
-    s+='<div class="stat"><div class="k">平均油耗</div><div class="v">'+(avg!=null?avg.toFixed(1):'—')+'<small> km/L</small></div></div>';
-    s+='<div class="stat"><div class="k">加油次數</div><div class="v">'+asc.length+'<small> 次</small></div></div>';
-    s+='<div class="stat"><div class="k">總油費</div><div class="v">'+fmtMoney(totCost)+'</div></div>';
-    s+='<div class="stat"><div class="k">油錢/公里</div><div class="v">'+(perKm!=null?perKm.toFixed(2):'—')+'<small> /km</small></div></div>';
-    document.getElementById('fuelStats').innerHTML=s;
-    if(!asc.length){document.getElementById('fuelList').innerHTML='<div class="empty">尚無加油紀錄</div>';return;}
-    var html='';
-    asc.slice().reverse().forEach(function(f){
-      var idx=asc.indexOf(f), kml=fuelKmL(f,asc,idx), dist=fuelDistance(f,asc,idx);
-      var auto=(f.mileage!=null&&dist!=null&&(f.distance==null||dist!==f.distance));
-      html+='<div class="frec">';
-      html+=kml!=null?'<div class="fkml"><b>'+kml.toFixed(1)+'</b><span>km/L</span></div>':'<div class="fkml na"><b>—</b><span>km/L</span></div>';
-      html+='<div class="fbody"><div class="fr1"><span class="desc">'+(f.liters||0)+' L @ $'+(f.price||0)+(f.note?' · '+esc(f.note):'')+'</span><span class="ftotal">'+fmtMoney(fuelTotal(f))+'</span></div>';
-      html+='<div class="fmeta2">';
-      html+=dist!=null?'<span>距離 <span class="mono">'+fmtNum(dist)+' km</span>'+(auto?'（自動）':'')+'</span>':'<span>距離 —</span>';
-      if(f.discount) html+='<span>折抵 -$'+f.discount+'</span>';
-      if(f.mileage!=null) html+='<span class="mono">'+fmtNum(f.mileage)+' km</span>';
-      if(f.date) html+='<span>'+f.date+'</span>';
-      html+='<span class="acts"><span class="ico" data-fuedit="'+f.id+'">編輯</span><span class="ico" data-fudel="'+f.id+'">刪除</span></span>';
-      html+='</div></div></div>';
-    });
-    var list=document.getElementById('fuelList'); list.innerHTML=html;
-    Array.prototype.forEach.call(list.querySelectorAll('[data-fuedit]'),function(el){el.onclick=function(){startFuelEdit(el.getAttribute('data-fuedit'));};});
-    Array.prototype.forEach.call(list.querySelectorAll('[data-fudel]'),function(el){el.onclick=function(){delFuel(el.getAttribute('data-fudel'));};});
-  }
-  function startFuelEdit(id){
-    var f=state.fuel.filter(function(x){return x.id===id;})[0]; if(!f)return;
-    document.getElementById('fuEditId').value=id;
-    document.getElementById('fuDate').value=f.date||'';
-    document.getElementById('fuMileage').value=f.mileage!=null?f.mileage:'';
-    document.getElementById('fuLiters').value=f.liters!=null?f.liters:'';
-    document.getElementById('fuPrice').value=f.price!=null?f.price:'';
-    document.getElementById('fuDiscount').value=f.discount!=null?f.discount:'';
-    document.getElementById('fuDistance').value=f.distance!=null?f.distance:'';
-    document.getElementById('fuNote').value=f.note||'';
-    document.getElementById('fuSaveBtn').textContent='更新加油';
-    document.getElementById('fuCancelBtn').style.display='inline-block';
-  }
-  function resetFuelForm(){
-    document.getElementById('fuEditId').value='';
-    ['fuDate','fuMileage','fuLiters','fuPrice','fuDiscount','fuDistance','fuNote'].forEach(function(i){document.getElementById(i).value='';});
-    document.getElementById('fuSaveBtn').textContent='儲存加油'; document.getElementById('fuCancelBtn').style.display='none';
-  }
-  function numOrNull(id){var v=document.getElementById(id).value;return v===''?null:parseFloat(v);}
-  async function saveFuelEntry(){
-    var liters=numOrNull('fuLiters'); if(liters==null)return;
-    var rec={date:document.getElementById('fuDate').value||'',mileage:numOrNull('fuMileage'),liters:liters,
-      price:numOrNull('fuPrice')||0,discount:numOrNull('fuDiscount')||0,
-      distance:numOrNull('fuDistance'),note:document.getElementById('fuNote').value.trim()};
-    var id=document.getElementById('fuEditId').value;
-    if(id){ state.fuel=state.fuel.map(function(f){return f.id===id?Object.assign({},f,rec):f;}); }
-    else{ rec.id='fu'+Date.now(); state.fuel.push(rec); }
-    await saveFuel(); resetFuelForm(); renderFuel();
-  }
-  async function delFuel(id){ state.fuel=state.fuel.filter(function(f){return f.id!==id;}); await saveFuel(); renderFuel(); }
+  // ---- Setup ----
+  document.getElementById('setupSaveBtn').onclick = function(){
+    var name = document.getElementById('setupName').value.trim();
+    if(!name){ document.getElementById('setupName').focus(); return; }
+    var plate = document.getElementById('setupPlate').value.trim().toUpperCase();
+    var spec = document.getElementById('setupSpec').value.trim();
+    var id = uid();
+    state.vehicles = [{id:id,name:name,plate:plate,spec:spec}];
+    saveVehicles();
+    S.set('records_'+id, []);
+    S.set('fuel_'+id, []);
+    document.getElementById('setupOverlay').classList.remove('open');
+    switchVehicle(id);
+    showApp();
+  };
+  document.getElementById('setupDemoBtn').onclick = function(){
+    var id = uid();
+    var records = DEMO_RECORDS.map(function(r,i){ return {id:'d'+i,date:r[0],mileage:r[1],cat:r[2],item:r[3],cost:r[4],note:r[5]}; });
+    var fuel = [{id:'f0',date:'2026-06-18',mileage:null,liters:6.06,price:32.4,discount:5,distance:170,note:'92無鉛'}];
+    state.vehicles = [{id:id,name:'勁戰三代',plate:'ABC-1234',spec:'Yamaha Cygnus-X 三代 125 FI · 空冷 SOHC 4V · 油箱 7.4L'}];
+    saveVehicles();
+    S.set('records_'+id, records);
+    S.set('fuel_'+id, fuel);
+    document.getElementById('setupOverlay').classList.remove('open');
+    switchVehicle(id);
+    showApp();
+  };
 
-  // ---- Records ----
+  // ---- Records helpers ----
   function currentMileage(){ var m=0; state.records.forEach(function(r){if(r.mileage&&r.mileage>m)m=r.mileage;}); return m; }
   function minMileage(){ var m=Infinity; state.records.forEach(function(r){if(r.mileage&&r.mileage<m)m=r.mileage;}); return m===Infinity?0:m; }
   function lastOf(cat){ var b=null; state.records.forEach(function(r){if(r.cat===cat&&r.mileage){if(!b||r.mileage>b.mileage)b=r;}}); return b; }
@@ -610,7 +637,33 @@
     while((m=re.exec(s||''))){var w=parseFloat(m[1]),n=parseInt(m[2],10);if(w>30)continue;parts.push(w+'g × '+n);total+=w*n;count+=n;}
     return parts.length?{text:parts.join('　+　'),total:total,count:count}:null;
   }
+  function estimateCost(rec){
+    if(typeof rec.cost==='number')return null;
+    var earlier=state.records.filter(function(r){return r!==rec&&r.cat===rec.cat&&typeof r.cost==='number'&&(r.date||'')<(rec.date||'');});
+    if(!earlier.length)return null;
+    earlier.sort(function(a,b){return(b.date||'').localeCompare(a.date||'');});
+    var toks=(rec.item||'').toLowerCase().match(/[a-z]{3,}/g)||[];
+    var branded=earlier.filter(function(r){var rt=(r.item||'').toLowerCase().match(/[a-z]{3,}/g)||[];return toks.some(function(t){return rt.indexOf(t)>=0;});});
+    return{cost:(branded.length?branded[0]:earlier[0]).cost};
+  }
 
+  // ---- Render: Stats ----
+  function renderStats(){
+    var cur=currentMileage(),mn=minMileage(),span=cur-mn;
+    document.getElementById('odoNum').textContent=fmtNum(cur);
+    var total=0,n=0,est=0;
+    state.records.forEach(function(r){if(typeof r.cost==='number')total+=r.cost;else{var e=estimateCost(r);if(e)est+=e.cost;}n++;});
+    var perKm=span>0?total/span:0;
+    var dates=state.records.map(function(r){return r.date;}).filter(Boolean).sort();
+    var years=dates.length>1?((new Date(dates[dates.length-1])-new Date(dates[0]))/(365.25*864e5)):0;
+    document.getElementById('stats').innerHTML=
+      '<div class="stat"><div class="k">已記錄花費</div><div class="v">'+fmtMoney(total)+(est>0?'<div class="estsub">含估算 ~'+fmtMoney(total+est)+'</div>':'')+'</div></div>'
+      +'<div class="stat"><div class="k">每公里成本</div><div class="v">'+perKm.toFixed(2)+'<small> /km</small></div></div>'
+      +'<div class="stat"><div class="k">紀錄筆數</div><div class="v">'+n+'<small> 筆</small></div></div>'
+      +'<div class="stat"><div class="k">記錄期間</div><div class="v">'+years.toFixed(1)+'<small> 年</small></div></div>';
+  }
+
+  // ---- Render: Reminders ----
   var SYSTEMS=[
     {name:'引擎',color:'#1B4FD0',items:[{cat:'oil'},{cat:'plug'},{label:'空濾',re:/空濾/,track:6000,color:'#0E7490'}]},
     {name:'傳動系統',color:'#BE5A1E',items:[
@@ -629,24 +682,19 @@
     {name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]},
     {name:'電系',color:'#5B6470',items:[{cat:'battery',timeBased:true,trackMonths:30,color:'#5B6470'}]}
   ];
-
-  function monthsBetween(dateStr){ if(!dateStr)return null; var d=new Date(dateStr); if(isNaN(d))return null; var now=new Date(); var m=(now.getFullYear()-d.getFullYear())*12+(now.getMonth()-d.getMonth()); return m<0?0:m; }
+  function monthsBetween(d){ if(!d)return null; var dt=new Date(d); if(isNaN(dt))return null; var n=new Date(); return Math.max(0,(n.getFullYear()-dt.getFullYear())*12+(n.getMonth()-dt.getMonth())); }
   function fmtAge(m){ return m>=12?(m/12).toFixed(1)+' 年':m+' 個月'; }
   function voltHealth(v){ if(v>=12.7)return{label:'健康',color:'#2E7D52'}; if(v>=12.4)return{label:'普通',color:'#B5781A'}; return{label:'偏弱',color:'#C0392B'}; }
-
   function resolveItem(item){
     if(item.timeBased){
       var blast=item.cat?latestOf(item.cat):latestMatch(item.re);
-      var blabel=item.cat?CATS[item.cat].label:item.label;
-      var bcolor=item.color||(item.cat?CATS[item.cat].color:'#5B6470');
       var ms=blast?monthsBetween(blast.date):null;
-      var volt=null;
-      if(blast){var vm=((blast.note||'')+' '+(blast.item||'')).match(/(\d{1,2}(?:\.\d)?)\s*[vV]/);if(vm)volt=parseFloat(vm[1]);}
-      return{label:blabel,color:bcolor,timeBased:true,trackMonths:item.trackMonths,last:blast,model:blast?cleanModel(blast.item):'',monthsSince:ms,ratio:ms==null?null:ms/item.trackMonths,volt:volt};
+      var volt=null; if(blast){var vm=((blast.note||'')+' '+(blast.item||'')).match(/(\d{1,2}(?:\.\d)?)\s*[vV]/);if(vm)volt=parseFloat(vm[1]);}
+      return{label:item.cat?CATS[item.cat].label:item.label,color:item.color||(item.cat?CATS[item.cat].color:'#5B6470'),timeBased:true,trackMonths:item.trackMonths,last:blast,model:blast?cleanModel(blast.item):'',monthsSince:ms,ratio:ms==null?null:ms/item.trackMonths,volt:volt};
     }
     var label,color,track,last,model;
     if(item.cat){
-      var c=CATS[item.cat]; if(!c.track)return null;
+      var c=CATS[item.cat];if(!c.track)return null;
       label=c.label;color=c.color;track=c.track;last=lastOf(item.cat);
       var l2=latestOf(item.cat);model=l2?cleanModel(l2.item):'';
     }else{
@@ -656,20 +704,12 @@
     var cur=currentMileage(),since=last?cur-last.mileage:null;
     return{label:label,color:color,track:track,last:last,model:model,since:since,ratio:since==null?null:since/track};
   }
-
   function gaugeCard(item){
-    var r=resolveItem(item); if(!r)return'';
+    var r=resolveItem(item);if(!r)return'';
     var pct=r.ratio==null?0:Math.min(r.ratio,1)*100;
     var cls,bg=r.color,txt;
-    if(item.ref){
-      cls='b-ref';
-      txt=(r.since==null)?'無紀錄':'目視為準';
-    }else{
-      if(r.ratio!=null&&r.ratio>=1){cls='b-due';bg='#C0392B';}
-      else if(r.ratio!=null&&r.ratio>=0.8){cls='b-soon';bg='#B5781A';}
-      else cls='b-ok';
-      txt=r.ratio==null?'無紀錄':(r.ratio>=1?'該換了':(r.ratio>=0.8?'快到了':'正常'));
-    }
+    if(item.ref){cls='b-ref';txt=r.since==null?'無紀錄':'目視為準';}
+    else{if(r.ratio!=null&&r.ratio>=1){cls='b-due';bg='#C0392B';}else if(r.ratio!=null&&r.ratio>=0.8){cls='b-soon';bg='#B5781A';}else cls='b-ok';txt=r.ratio==null?'無紀錄':(r.ratio>=1?'該換了':(r.ratio>=0.8?'快到了':'正常'));}
     var left,right,lastInfo;
     if(r.timeBased){
       left=r.monthsSince==null?'尚無紀錄':'已 '+fmtAge(r.monthsSince);right='建議 '+fmtAge(r.trackMonths);
@@ -686,14 +726,9 @@
       +'<div class="gmeta"><span class="km">'+left+'</span><span>'+right+'</span></div>'
       +(lastInfo?'<div class="glast">'+lastInfo+'</div>':'')+'</div>';
   }
-
   function renderReminders(){
     var due=0,soon=0;
-    SYSTEMS.forEach(function(s){s.items.forEach(function(it){
-      if(it.ref)return;
-      var r=resolveItem(it);if(!r||r.ratio==null)return;
-      if(r.ratio>=1)due++;else if(r.ratio>=0.8)soon++;
-    });});
+    SYSTEMS.forEach(function(s){s.items.forEach(function(it){if(it.ref)return;var r=resolveItem(it);if(!r||r.ratio==null)return;if(r.ratio>=1)due++;else if(r.ratio>=0.8)soon++;});});
     var html='';
     if(due>0||soon>0) html+='<div class="duebanner">'+(due>0?'<span class="db-due">'+due+' 項該換</span>':'')+(soon>0?'<span class="db-soon">'+soon+' 項快到</span>':'')+'</div>';
     SYSTEMS.forEach(function(sys){
@@ -703,22 +738,7 @@
     document.getElementById('reminders').innerHTML=html;
   }
 
-  function renderStats(){
-    var cur=currentMileage(),mn=minMileage(),span=cur-mn;
-    document.getElementById('odoNum').textContent=fmtNum(cur);
-    var total=0,n=0,est=0;
-    state.records.forEach(function(r){if(typeof r.cost==='number')total+=r.cost;else{var e=estimateCost(r);if(e)est+=e.cost;}n++;});
-    var perKm=span>0?total/span:0;
-    var dates=state.records.map(function(r){return r.date;}).filter(Boolean).sort();
-    var years=dates.length>1?((new Date(dates[dates.length-1])-new Date(dates[0]))/(365.25*864e5)):0;
-    var html='';
-    html+='<div class="stat"><div class="k">已記錄花費</div><div class="v">'+fmtMoney(total)+(est>0?'<div class="estsub">含估算 ~'+fmtMoney(total+est)+'</div>':'')+'</div></div>';
-    html+='<div class="stat"><div class="k">每公里成本</div><div class="v">'+perKm.toFixed(2)+'<small> /km</small></div></div>';
-    html+='<div class="stat"><div class="k">紀錄筆數</div><div class="v">'+n+'<small> 筆</small></div></div>';
-    html+='<div class="stat"><div class="k">記錄期間</div><div class="v">'+years.toFixed(1)+'<small> 年</small></div></div>';
-    document.getElementById('stats').innerHTML=html;
-  }
-
+  // ---- Render: Spec ----
   function renderSpec(){
     var html='';
     Object.keys(CATS).forEach(function(cat){
@@ -735,57 +755,7 @@
     document.getElementById('spec').innerHTML=html||'<div class="empty">尚無資料</div>';
   }
 
-  function monthlyMileage(){
-    var pts=state.records.filter(function(r){return r.mileage!=null&&r.date;})
-      .map(function(r){return{date:r.date,mileage:r.mileage};})
-      .sort(function(a,b){return a.date.localeCompare(b.date)||a.mileage-b.mileage;});
-    var clean=[],mx=-1;
-    pts.forEach(function(p){if(p.mileage>=mx){clean.push(p);mx=p.mileage;}});
-    var months={};
-    function add(ym,km){months[ym]=(months[ym]||0)+km;}
-    for(var i=1;i<clean.length;i++){
-      var a=clean[i-1],b=clean[i];
-      var d1=new Date(a.date),d2=new Date(b.date);
-      var totalDays=Math.max(1,Math.round((d2-d1)/864e5));
-      var perDay=(b.mileage-a.mileage)/totalDays;
-      var cur=new Date(d1);
-      while(cur<d2){
-        var monthEnd=new Date(cur.getFullYear(),cur.getMonth()+1,1);
-        var segEnd=monthEnd<d2?monthEnd:d2;
-        var days=(segEnd-cur)/864e5;
-        var ym=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0');
-        add(ym,days*perDay);
-        cur=segEnd;
-      }
-    }
-    return Object.keys(months).sort().map(function(k){return{ym:k,km:Math.round(months[k])};});
-  }
-
-  function renderMonthly(){
-    var arr=monthlyMileage();
-    var el=document.getElementById('monthly');
-    if(arr.length<2){el.innerHTML='<div class="empty">里程資料不足</div>';return;}
-    var tot=arr.reduce(function(s,m){return s+m.km;},0);
-    var avg=tot/arr.length;
-    var maxM=arr.reduce(function(a,m){return m.km>a.km?m:a;});
-    var last12=arr.slice(-12),avg12=last12.reduce(function(s,m){return s+m.km;},0)/last12.length;
-    var maxKm=maxM.km||1,bars='',axis='';
-    arr.forEach(function(m,i){
-      var h=Math.max(2,Math.round(m.km/maxKm*116));
-      var recent=i===arr.length-1;
-      bars+='<div class="mbar'+(recent?' recent':'')+'" style="height:'+h+'px" title="'+m.ym+' · '+fmtNum(m.km)+' km"></div>';
-      var mo=m.ym.slice(5);
-      axis+='<div class="myr">'+((mo==='01'||i===0)?m.ym.slice(0,4):'')+'</div>';
-    });
-    el.innerHTML='<div class="mstats">'
-      +'<div class="mstat"><div class="k">平均 / 月</div><div class="v">'+fmtNum(Math.round(avg))+'<small> km</small></div></div>'
-      +'<div class="mstat"><div class="k">最高月</div><div class="v">'+fmtNum(maxM.km)+'<small> km · '+maxM.ym.slice(2)+'</small></div></div>'
-      +'<div class="mstat"><div class="k">近12月 / 月</div><div class="v">'+fmtNum(Math.round(avg12))+'<small> km</small></div></div>'
-      +'</div>'
-      +'<div class="mscroll"><div class="mchart">'+bars+'</div><div class="maxis">'+axis+'</div></div>';
-    var sc=el.querySelector('.mscroll');if(sc)sc.scrollLeft=sc.scrollWidth;
-  }
-
+  // ---- Render: Cost bars ----
   function renderCostBars(){
     var sums={};
     state.records.forEach(function(r){if(typeof r.cost==='number')sums[r.cat]=(sums[r.cat]||0)+r.cost;});
@@ -795,17 +765,96 @@
     document.getElementById('costbars').innerHTML=html||'<div class="empty">尚無花費資料</div>';
   }
 
-  function estimateCost(rec){
-    if(typeof rec.cost==='number')return null;
-    var earlier=state.records.filter(function(r){return r!==rec&&r.cat===rec.cat&&typeof r.cost==='number'&&(r.date||'')<(rec.date||'');});
-    if(!earlier.length)return null;
-    earlier.sort(function(a,b){return(b.date||'').localeCompare(a.date||'');});
-    var toks=(rec.item||'').toLowerCase().match(/[a-z]{3,}/g)||[];
-    var branded=earlier.filter(function(r){var rt=(r.item||'').toLowerCase().match(/[a-z]{3,}/g)||[];return toks.some(function(t){return rt.indexOf(t)>=0;});});
-    var pick=branded.length?branded[0]:earlier[0];
-    return{cost:pick.cost,from:pick};
+  // ---- Render: Monthly ----
+  function monthlyMileage(){
+    var pts=state.records.filter(function(r){return r.mileage!=null&&r.date;}).map(function(r){return{date:r.date,mileage:r.mileage};}).sort(function(a,b){return a.date.localeCompare(b.date)||a.mileage-b.mileage;});
+    var clean=[],mx=-1; pts.forEach(function(p){if(p.mileage>=mx){clean.push(p);mx=p.mileage;}});
+    var months={};
+    function add(ym,km){months[ym]=(months[ym]||0)+km;}
+    for(var i=1;i<clean.length;i++){
+      var a=clean[i-1],b=clean[i],d1=new Date(a.date),d2=new Date(b.date);
+      var totalDays=Math.max(1,Math.round((d2-d1)/864e5)),perDay=(b.mileage-a.mileage)/totalDays,cur=new Date(d1);
+      while(cur<d2){var me=new Date(cur.getFullYear(),cur.getMonth()+1,1),se=me<d2?me:d2,days=(se-cur)/864e5,ym=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0');add(ym,days*perDay);cur=se;}
+    }
+    return Object.keys(months).sort().map(function(k){return{ym:k,km:Math.round(months[k])};});
+  }
+  function renderMonthly(){
+    var arr=monthlyMileage(),el=document.getElementById('monthly');
+    if(arr.length<2){el.innerHTML='<div class="empty">里程資料不足</div>';return;}
+    var tot=arr.reduce(function(s,m){return s+m.km;},0),avg=tot/arr.length;
+    var maxM=arr.reduce(function(a,m){return m.km>a.km?m:a;}),maxKm=maxM.km||1;
+    var last12=arr.slice(-12),avg12=last12.reduce(function(s,m){return s+m.km;},0)/last12.length;
+    var bars='',axis='';
+    arr.forEach(function(m,i){
+      var h=Math.max(2,Math.round(m.km/maxKm*116));
+      bars+='<div class="mbar'+(i===arr.length-1?' recent':'')+'" style="height:'+h+'px" title="'+m.ym+' · '+fmtNum(m.km)+' km"></div>';
+      axis+='<div class="myr">'+((m.ym.slice(5)==='01'||i===0)?m.ym.slice(0,4):'')+'</div>';
+    });
+    el.innerHTML='<div class="mstats"><div class="mstat"><div class="k">平均 / 月</div><div class="v">'+fmtNum(Math.round(avg))+'<small> km</small></div></div><div class="mstat"><div class="k">最高月</div><div class="v">'+fmtNum(maxM.km)+'<small> km · '+maxM.ym.slice(2)+'</small></div></div><div class="mstat"><div class="k">近12月 / 月</div><div class="v">'+fmtNum(Math.round(avg12))+'<small> km</small></div></div></div><div class="mscroll"><div class="mchart">'+bars+'</div><div class="maxis">'+axis+'</div></div>';
+    var sc=el.querySelector('.mscroll');if(sc)sc.scrollLeft=sc.scrollWidth;
   }
 
+  // ---- Render: Fuel ----
+  function fuelSorted(){ return state.fuel.slice().sort(function(a,b){if(a.mileage!=null&&b.mileage!=null)return a.mileage-b.mileage;if(a.mileage!=null)return 1;if(b.mileage!=null)return -1;return(a.date||'').localeCompare(b.date||'');}); }
+  function fuelTotal(f){ return (f.liters||0)*(f.price||0)-(f.discount||0); }
+  function fuelDistance(f,asc,idx){ if(f.mileage!=null){for(var i=idx-1;i>=0;i--){if(asc[i].mileage!=null)return f.mileage-asc[i].mileage;}} return f.distance!=null?f.distance:null; }
+  function fuelKmL(f,asc,idx){ var d=fuelDistance(f,asc,idx);return(d!=null&&f.liters)?d/f.liters:null; }
+  function renderFuel(){
+    var asc=fuelSorted(),totCost=0,validDist=0,validLiters=0;
+    asc.forEach(function(f,i){totCost+=fuelTotal(f);var d=fuelDistance(f,asc,i);if(d!=null&&f.liters){validDist+=d;validLiters+=f.liters;}});
+    var avg=validLiters>0?validDist/validLiters:null,perKm=validDist>0?totCost/validDist:null;
+    document.getElementById('fuelStats').innerHTML=
+      '<div class="stat"><div class="k">平均油耗</div><div class="v">'+(avg!=null?avg.toFixed(1):'—')+'<small> km/L</small></div></div>'
+      +'<div class="stat"><div class="k">加油次數</div><div class="v">'+asc.length+'<small> 次</small></div></div>'
+      +'<div class="stat"><div class="k">總油費</div><div class="v">'+fmtMoney(totCost)+'</div></div>'
+      +'<div class="stat"><div class="k">油錢/公里</div><div class="v">'+(perKm!=null?perKm.toFixed(2):'—')+'<small> /km</small></div></div>';
+    if(!asc.length){document.getElementById('fuelList').innerHTML='<div class="empty">尚無加油紀錄</div>';return;}
+    var html='';
+    asc.slice().reverse().forEach(function(f){
+      var idx=asc.indexOf(f),kml=fuelKmL(f,asc,idx),dist=fuelDistance(f,asc,idx),auto=(f.mileage!=null&&dist!=null&&(f.distance==null||dist!==f.distance));
+      html+='<div class="frec">'+(kml!=null?'<div class="fkml"><b>'+kml.toFixed(1)+'</b><span>km/L</span></div>':'<div class="fkml na"><b>—</b><span>km/L</span></div>')
+        +'<div class="fbody"><div class="fr1"><span class="desc">'+(f.liters||0)+' L @ $'+(f.price||0)+(f.note?' · '+esc(f.note):'')+'</span><span class="ftotal">'+fmtMoney(fuelTotal(f))+'</span></div>'
+        +'<div class="fmeta2">'+(dist!=null?'<span>距離 <span class="mono">'+fmtNum(dist)+' km</span>'+(auto?'（自動）':'')+'</span>':'<span>距離 —</span>')
+        +(f.discount?'<span>折抵 -$'+f.discount+'</span>':'')
+        +(f.mileage!=null?'<span class="mono">'+fmtNum(f.mileage)+' km</span>':'')
+        +(f.date?'<span>'+f.date+'</span>':'')
+        +'<span class="acts"><span class="ico" data-fuedit="'+f.id+'">編輯</span><span class="ico" data-fudel="'+f.id+'">刪除</span></span></div></div></div>';
+    });
+    var list=document.getElementById('fuelList');list.innerHTML=html;
+    Array.prototype.forEach.call(list.querySelectorAll('[data-fuedit]'),function(el){el.onclick=function(){startFuelEdit(el.getAttribute('data-fuedit'));};});
+    Array.prototype.forEach.call(list.querySelectorAll('[data-fudel]'),function(el){el.onclick=function(){delFuel(el.getAttribute('data-fudel'));};});
+  }
+  function startFuelEdit(id){
+    var f=state.fuel.filter(function(x){return x.id===id;})[0];if(!f)return;
+    document.getElementById('fuEditId').value=id;
+    document.getElementById('fuDate').value=f.date||'';
+    document.getElementById('fuMileage').value=f.mileage!=null?f.mileage:'';
+    document.getElementById('fuLiters').value=f.liters!=null?f.liters:'';
+    document.getElementById('fuPrice').value=f.price!=null?f.price:'';
+    document.getElementById('fuDiscount').value=f.discount!=null?f.discount:'';
+    document.getElementById('fuDistance').value=f.distance!=null?f.distance:'';
+    document.getElementById('fuNote').value=f.note||'';
+    document.getElementById('fuSaveBtn').textContent='更新加油';
+    document.getElementById('fuCancelBtn').style.display='inline-block';
+  }
+  function resetFuelForm(){
+    document.getElementById('fuEditId').value='';
+    ['fuDate','fuMileage','fuLiters','fuPrice','fuDiscount','fuDistance','fuNote'].forEach(function(i){document.getElementById(i).value='';});
+    document.getElementById('fuSaveBtn').textContent='儲存加油';document.getElementById('fuCancelBtn').style.display='none';
+  }
+  function numOrNull(id){var v=document.getElementById(id).value;return v===''?null:parseFloat(v);}
+  document.getElementById('fuSaveBtn').onclick=async function(){
+    var liters=numOrNull('fuLiters');if(liters==null)return;
+    var rec={date:document.getElementById('fuDate').value||'',mileage:numOrNull('fuMileage'),liters:liters,price:numOrNull('fuPrice')||0,discount:numOrNull('fuDiscount')||0,distance:numOrNull('fuDistance'),note:document.getElementById('fuNote').value.trim()};
+    var id=document.getElementById('fuEditId').value;
+    if(id){state.fuel=state.fuel.map(function(f){return f.id===id?Object.assign({},f,rec):f;});}
+    else{rec.id='fu'+Date.now();state.fuel.push(rec);}
+    saveFuel();resetFuelForm();renderFuel();
+  };
+  document.getElementById('fuCancelBtn').onclick=resetFuelForm;
+  function delFuel(id){state.fuel=state.fuel.filter(function(f){return f.id!==id;});saveFuel();renderFuel();}
+
+  // ---- Render: Record list ----
   function renderFilters(){
     var counts={all:state.records.length};
     state.records.forEach(function(r){counts[r.cat]=(counts[r.cat]||0)+1;});
@@ -814,7 +863,6 @@
     var fl=document.getElementById('filters');fl.innerHTML=html;
     Array.prototype.forEach.call(fl.querySelectorAll('.chip'),function(ch){ch.onclick=function(){state.filter=ch.getAttribute('data-f');renderFilters();renderList();};});
   }
-
   function renderList(){
     var rows=state.records.slice().sort(function(a,b){var d=(b.date||'').localeCompare(a.date||'');if(d!==0)return d;return(b.mileage||0)-(a.mileage||0);});
     if(state.filter!=='all')rows=rows.filter(function(r){return r.cat===state.filter;});
@@ -825,20 +873,19 @@
     rows.forEach(function(r){
       var c=CATS[r.cat]||CATS.mod,cost;
       if(typeof r.cost==='number')cost='<span class="rcost">'+fmtMoney(r.cost)+'</span>';
-      else{var est=estimateCost(r);cost=est?'<span class="rcost est" title="依先前同類紀錄估算">~'+fmtMoney(est.cost)+' 估</span>':'<span class="rcost none">—</span>';}
-      html+='<div class="rec"><div class="tag" style="background:'+c.color+';"></div><div class="body">';
-      html+='<div class="r1"><span class="rcat" style="color:'+c.color+';">'+c.label+'</span>'+cost+'</div>';
-      html+='<div class="ritem">'+esc(r.item||'')+'</div>';
-      html+='<div class="rmeta"><span>'+(r.date||'—')+'</span><span class="mil">'+(r.mileage?fmtNum(r.mileage)+' km':'里程未記')+'</span><span class="acts"><span class="ico" data-edit="'+r.id+'">編輯</span><span class="ico" data-del="'+r.id+'">刪除</span></span></div>';
-      if(r.note)html+='<div class="rnote">'+esc(r.note)+'</div>';
-      html+='</div></div>';
+      else{var est=estimateCost(r);cost=est?'<span class="rcost est">~'+fmtMoney(est.cost)+' 估</span>':'<span class="rcost none">—</span>';}
+      html+='<div class="rec"><div class="tag" style="background:'+c.color+';"></div><div class="body">'
+        +'<div class="r1"><span class="rcat" style="color:'+c.color+';">'+c.label+'</span>'+cost+'</div>'
+        +'<div class="ritem">'+esc(r.item||'')+'</div>'
+        +'<div class="rmeta"><span>'+(r.date||'—')+'</span><span class="mil">'+(r.mileage?fmtNum(r.mileage)+' km':'里程未記')+'</span>'
+        +'<span class="acts"><span class="ico" data-edit="'+r.id+'">編輯</span><span class="ico" data-del="'+r.id+'">刪除</span></span></div>'
+        +(r.note?'<div class="rnote">'+esc(r.note)+'</div>':'')
+        +'</div></div>';
     });
     var list=document.getElementById('recList');list.innerHTML=html;
     Array.prototype.forEach.call(list.querySelectorAll('[data-edit]'),function(el){el.onclick=function(){startEdit(el.getAttribute('data-edit'));};});
     Array.prototype.forEach.call(list.querySelectorAll('[data-del]'),function(el){el.onclick=function(){delRec(el.getAttribute('data-del'));};});
   }
-
-  function renderAll(){renderStats();renderReminders();renderSpec();renderCostBars();renderMonthly();renderFuel();renderFilters();renderList();}
 
   function fillCatSelect(){
     document.getElementById('fCat').innerHTML=Object.keys(CATS).map(function(k){return'<option value="'+k+'">'+CATS[k].label+'</option>';}).join('');
@@ -861,38 +908,33 @@
     ['fDate','fMileage','fCost','fItem','fNote'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('saveBtn').textContent='儲存紀錄';document.getElementById('cancelBtn').style.display='none';
   }
-  async function saveRec(){
-    var date=document.getElementById('fDate').value,mileage=document.getElementById('fMileage').value,
-        cost=document.getElementById('fCost').value,item=document.getElementById('fItem').value.trim();
+  document.getElementById('saveBtn').onclick=function(){
+    var date=document.getElementById('fDate').value,mileage=document.getElementById('fMileage').value,cost=document.getElementById('fCost').value,item=document.getElementById('fItem').value.trim();
     if(!date&&!item)return;
-    var rec={date:date||'',mileage:mileage===''?null:parseInt(mileage,10),cat:document.getElementById('fCat').value,
-      cost:cost===''?null:parseFloat(cost),item:item,note:document.getElementById('fNote').value.trim()};
+    var rec={date:date||'',mileage:mileage===''?null:parseInt(mileage,10),cat:document.getElementById('fCat').value,cost:cost===''?null:parseFloat(cost),item:item,note:document.getElementById('fNote').value.trim()};
     var id=document.getElementById('editId').value;
     if(id){state.records=state.records.map(function(r){return r.id===id?Object.assign({},r,rec):r;});}
     else{rec.id='u'+Date.now();state.records.push(rec);}
-    await save();resetForm();renderAll();
-  }
-  async function delRec(id){state.records=state.records.filter(function(r){return r.id!==id;});await save();renderAll();}
+    saveRecords();resetForm();renderAll();
+  };
+  document.getElementById('cancelBtn').onclick=resetForm;
+  function delRec(id){state.records=state.records.filter(function(r){return r.id!==id;});saveRecords();renderAll();}
 
-  function exportCSV(){
+  document.getElementById('exportBtn').onclick=function(){
+    var v=state.vehicles.find(function(v){return v.id===state.activeId;})||{};
     var head=['日期','里程','分類','更換內容','金額','備註'],lines=[head.join(',')];
     state.records.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'');}).forEach(function(r){
-      var row=[r.date||'',r.mileage!=null?r.mileage:'',CATS[r.cat]?CATS[r.cat].label:r.cat,
-        '"'+(r.item||'').replace(/"/g,'""')+'"',typeof r.cost==='number'?r.cost:'','"'+(r.note||'').replace(/"/g,'""')+'"'];
-      lines.push(row.join(','));
+      lines.push([r.date||'',r.mileage!=null?r.mileage:'',CATS[r.cat]?CATS[r.cat].label:r.cat,'"'+(r.item||'').replace(/"/g,'""')+'"',typeof r.cost==='number'?r.cost:'','"'+(r.note||'').replace(/"/g,'""')+'"'].join(','));
     });
     var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=(state.vehicle.name||'摩托車')+'_保養紀錄.csv';a.click();URL.revokeObjectURL(url);
-  }
+    a.href=url;a.download=(v.name||'摩托車')+'_保養紀錄.csv';a.click();URL.revokeObjectURL(url);
+  };
+  document.getElementById('search').oninput=function(e){state.search=e.target.value;renderList();};
+
+  function renderAll(){renderStats();renderReminders();renderSpec();renderCostBars();renderMonthly();renderFuel();renderFilters();renderList();}
 
   fillCatSelect();
-  document.getElementById('saveBtn').onclick=saveRec;
-  document.getElementById('cancelBtn').onclick=resetForm;
-  document.getElementById('exportBtn').onclick=exportCSV;
-  document.getElementById('search').oninput=function(e){state.search=e.target.value;renderList();};
-  document.getElementById('fuSaveBtn').onclick=saveFuelEntry;
-  document.getElementById('fuCancelBtn').onclick=resetFuelForm;
-  load();
+  init();
 })();
 </script>
 </div>
