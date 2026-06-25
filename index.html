@@ -355,53 +355,191 @@
   };
 
   // ---- Motorcycle DB ----
-  // intervals: oil, gear, air, plug, belt, fork, tire_f, tire_r (km); battery (months)
+  // IV(oil, gear, air, plug, belt, fork, tire_f, tire_r, battery)  — km, battery in months. null = 不顯示
+  function IV(o,g,a,p,b,f,tf,tr,bat){return {oil:o,gear:g,air:a,plug:p,belt:b,fork:f,tire_f:tf,tire_r:tr,battery:bat};}
+  // Class presets
+  var P_AC125 = function(){return IV(1000,4000,6000,8000,15000,8000,12000,15000,30);};   // 空冷 125 速克達
+  var P_WC125 = function(){return IV(2000,5000,6000,8000,20000,10000,12000,15000,30);};   // 水冷 125-160 速克達
+  var P_WC300 = function(){return IV(3000,6000,8000,10000,20000,12000,15000,18000,36);};  // 水冷 250-350 速克達
+  var P_WC500 = function(){return IV(5000,8000,10000,12000,25000,15000,15000,18000,36);};  // 大型速克達 500+
+  var P_GEAR  = function(){return IV(1000,null,6000,8000,null,8000,12000,15000,30);};      // 檔車（無傳動皮帶/齒輪油）
+  var P_BIGGEAR=function(){return IV(6000,null,12000,16000,null,15000,15000,18000,36);};    // 大型重機檔車
+  // 電動車：減速箱齒輪油 10000、傳動皮帶 24000、前叉 10000、輪胎；無機油/空濾/火星塞/12V電瓶週期
+  var P_EV    = function(){return IV(null,10000,null,null,24000,10000,12000,15000,null);};
+  var ND      = null; // 無確切數據 → 不顯示週期
+  // 煞車型式代碼：rd=前碟後碟、rg=前碟後鼓、fg=前後鼓
+  var BRAKE_MAP={rd:{f:'disc',r:'disc'},rg:{f:'disc',r:'drum'},fg:{f:'drum',r:'drum'}};
+  // m(spec, intervals, brakeCode) — 依 spec 文字自動判斷電動/冷卻；brakeCode 指定煞車型式
+  function m(spec,iv,brakeCode){
+    var cooling = /水冷/.test(spec) ? 'water' : (/空冷|氣冷/.test(spec) ? 'air' : null);
+    var isGear = /檔車|重機|越野/.test(spec);
+    var brake = (brakeCode&&BRAKE_MAP[brakeCode]) || (isGear?{f:'disc',r:'disc'}:{f:'disc',r:'drum'});
+    return {spec:spec,intervals:iv,ev:/電動/.test(spec),cooling:cooling,brake:brake};
+  }
   var MOTO_DB = {
     'Yamaha':{
-      '勁戰一代 Cygnus-X (2002-2007)':{name:'勁戰一代',spec:'Yamaha Cygnus-X 125 · 空冷 SOHC 2V · 油箱 7.2L · 機油 0.85L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
-      '勁戰二代 Cygnus-X (2007-2012)':{name:'勁戰二代',spec:'Yamaha Cygnus-X 125 · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.9L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
-      '勁戰三代 Cygnus-X (2012-2014)':{name:'勁戰三代',spec:'Yamaha Cygnus-X 三代 125 FI · 空冷 SOHC 4V · 油箱 7.4L · 機油 0.9L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
-      '勁戰四代 Cygnus-X SR (2014-2017)':{name:'勁戰四代',spec:'Yamaha Cygnus-X SR 125 FI · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.9L',intervals:{oil:1000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
-      '勁戰五代 (2018-2021)':{name:'勁戰五代',spec:'Yamaha 勁戰五代 125 FI · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
-      '勁戰六代 (2022-)':{name:'勁戰六代',spec:'Yamaha 勁戰六代 125 FI · 空冷 SOHC 4V · 油箱 7.2L · 機油 0.95L',intervals:{oil:2000,gear:5000,air:6000,plug:10000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
-      'NMAX 155 (2016-2020)':{name:'NMAX 155',spec:'Yamaha NMAX 155 FI · 水冷 SOHC 4V · 油箱 7.1L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
-      'NMAX 155 ABS (2020-)':{name:'NMAX 155 ABS',spec:'Yamaha NMAX 155 FI ABS · 水冷 SOHC 4V · 油箱 7.1L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
-      'AUGUR RX 155 (2022-)':{name:'AUGUR RX 155',spec:'Yamaha AUGUR RX 155 FI · 水冷 SOHC 4V · 油箱 7.1L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:30}},
-      'BWSR 125 (2017-)':{name:'BWSR 125',spec:'Yamaha BW\'S R 125 FI · 空冷 SOHC 4V · 油箱 5.5L · 機油 0.9L',intervals:{oil:1500,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:30}},
+      '勁戰一代 Cygnus-X (2002-2007)':m('Yamaha Cygnus-X 125 · 空冷 SOHC 2V · 油箱 7.2L',IV(1000,4000,6000,8000,15000,8000,12000,15000,30)),
+      '勁戰二代 Cygnus-X (2007-2012)':m('Yamaha Cygnus-X 125 · 空冷 SOHC 4V · 油箱 7.2L',IV(1000,4000,6000,8000,15000,8000,12000,15000,30)),
+      '勁戰三代 Cygnus-X (2012-2014)':m('Yamaha Cygnus-X 三代 125 FI · 空冷 SOHC 4V · 油箱 7.4L',IV(1000,4000,6000,8000,15000,8000,12000,15000,30)),
+      '勁戰四代 Cygnus-X SR (2014-2017)':m('Yamaha Cygnus-X SR 125 FI · 空冷 SOHC 4V · 油箱 7.2L',IV(1000,4000,6000,8000,15000,8000,12000,15000,30)),
+      '勁戰五代 (2018-2021)':m('Yamaha 勁戰五代 125 FI · 空冷 SOHC 4V · 油箱 7.2L',IV(2000,5000,6000,8000,20000,10000,12000,15000,30)),
+      '勁戰六代 (2022-)':m('Yamaha 勁戰六代 125 FI · 空冷 SOHC 4V · 油箱 7.2L',IV(2000,5000,6000,10000,20000,10000,12000,15000,30)),
+      '勁戰七代 (2024-)':m('Yamaha 勁戰七代 125 FI · 空冷 SOHC 4V',IV(2000,5000,6000,10000,20000,10000,12000,15000,30)),
+      'BWSR 125 (2017-)':m('Yamaha BW\'S R 125 FI · 空冷 SOHC 4V · 油箱 5.5L',IV(1500,4000,6000,8000,15000,8000,12000,15000,30)),
+      'Force 1.0 155 (2016-2021)':m('Yamaha Force 155 FI · 水冷 SOHC 4V · 油箱 6.0L',P_WC125(),'rd'),
+      'Force 2.0 155 (2021-)':m('Yamaha Force 2.0 155 FI · 水冷 SOHC 4V · 油箱 6.1L',P_WC125(),'rd'),
+      'SMAX 155 (2013-)':m('Yamaha SMAX 155 FI · 水冷 SOHC 4V · 油箱 7.5L',P_WC125(),'rd'),
+      'NMAX 155 (2016-2020)':m('Yamaha NMAX 155 FI · 水冷 SOHC 4V · 油箱 7.1L',P_WC125(),'rd'),
+      'NMAX 155 ABS (2020-)':m('Yamaha NMAX 155 FI ABS · 水冷 SOHC 4V · 油箱 7.1L',P_WC125(),'rd'),
+      'AUGUR RX 155 (2022-)':m('Yamaha AUGUR RX 155 FI · 水冷 SOHC 4V · 油箱 7.1L',P_WC125(),'rd'),
+      'Limi 115 (2019-)':m('Yamaha Limi 115 FI · 空冷 SOHC 2V · 油箱 5.5L',P_AC125()),
+      'Vinoora 125 (2021-)':m('Yamaha Vinoora 125 FI · 空冷 SOHC 4V · 油箱 6.0L',P_AC125()),
+      'Cuxi 115 (2016-)':m('Yamaha Cuxi 115 FI · 空冷 SOHC 2V · 油箱 4.7L',P_AC125()),
+      'RS Neo 125 (2018-)':m('Yamaha RS Neo 125 FI · 空冷 SOHC 4V · 油箱 5.5L',P_AC125()),
+      'JOG 125 (2022-)':m('Yamaha JOG 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'EC-05 (電動)':m('Yamaha EC-05 · 電動 · 換電式',P_EV()),
+      'YZF-R15 V3 (2017-)':m('Yamaha YZF-R15 · 水冷 SOHC 4V · 155cc · 檔車',P_GEAR()),
+      'YZF-R3 (2015-)':m('Yamaha YZF-R3 · 水冷 DOHC · 321cc 雙缸 · 檔車',P_BIGGEAR()),
+      'MT-03 (2016-)':m('Yamaha MT-03 · 水冷 DOHC · 321cc 雙缸 · 檔車',P_BIGGEAR()),
+      'MT-07 (2014-)':m('Yamaha MT-07 · 水冷 DOHC · 689cc 雙缸 · 檔車',P_BIGGEAR()),
+      'MT-09 (2014-)':m('Yamaha MT-09 · 水冷 DOHC · 889cc 三缸 · 檔車',P_BIGGEAR()),
+      'YZF-R7 (2021-)':m('Yamaha YZF-R7 · 水冷 · 689cc 雙缸 · 檔車',P_BIGGEAR()),
+      'TMAX 560 (2022-)':m('Yamaha TMAX 560 · 水冷 · 大型速克達',P_WC500(),'rd'),
+      'XMAX 300 (2017-)':m('Yamaha XMAX 300 FI · 水冷 SOHC 4V · 油箱 13L',P_WC300(),'rd'),
     },
     'SYM 三陽':{
-      'Jet SL 125 (2018-)':{name:'Jet SL 125',spec:'SYM Jet SL 125 FI · 空冷 SOHC 4V · 油箱 6.5L · 機油 0.85L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'DRG 158 BT (2019-)':{name:'DRG 158 BT',spec:'SYM DRG 158 FI · 水冷 SOHC 4V · 油箱 8.0L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'MMBCU 158 (2021-)':{name:'MMBCU 158',spec:'SYM MMBCU 158 FI · 水冷 SOHC 4V · 油箱 7.8L · 機油 1.0L',intervals:{oil:3000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'Mio 110 (2017-)':{name:'Mio 110',spec:'SYM Mio 110 FI · 空冷 SOHC 2V · 油箱 5.5L · 機油 0.8L',intervals:{oil:1500,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:36}},
-      'GTS 300i (2021-)':{name:'GTS 300i',spec:'SYM GTS 300i FI · 水冷 SOHC 4V · 油箱 12.0L · 機油 1.2L',intervals:{oil:3000,gear:6000,air:6000,plug:10000,belt:20000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
+      'Jet SL 125 (2018-)':m('SYM Jet SL 125 FI · 空冷 SOHC 4V · 油箱 6.5L',P_WC125()),
+      'Jet SL+ 158 (2019-)':m('SYM Jet SL+ 158 FI · 水冷 SOHC 4V · 油箱 6.5L',P_WC125()),
+      'Jet SR 125 (2015-)':m('SYM Jet SR 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'Jet S 125 (2015-)':m('SYM Jet S 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'Jet 14 125/200 (2021-)':m('SYM Jet 14 FI · 空冷/水冷 · 大輪徑',P_WC125(),'rd'),
+      'DRG 158 BT (2019-)':m('SYM DRG 158 FI · 水冷 SOHC 4V · 油箱 8.0L',P_WC125(),'rd'),
+      'MMBCU 158 (2021-)':m('SYM MMBCU 158 FI · 水冷 SOHC 4V · 油箱 7.8L',P_WC125(),'rd'),
+      '4MICA 158 (2022-)':m('SYM 4MICA 158 FI · 水冷 SOHC 4V',P_WC125(),'rd'),
+      'Fiddle 125 (2014-)':m('SYM Fiddle 125 FI · 空冷 SOHC 4V · 油箱 6.5L',P_AC125()),
+      'Fiddle 150 (2018-)':m('SYM Fiddle 150 FI · 空冷 SOHC 4V',P_AC125()),
+      'Woo 100/115 (2016-)':m('SYM Woo 115 FI · 空冷 SOHC 2V',P_AC125()),
+      'Mio 110/115 (2017-)':m('SYM Mio 115 FI · 空冷 SOHC 2V · 油箱 5.5L',IV(1500,4000,6000,8000,15000,8000,12000,15000,36)),
+      'Z1 125 (2013-)':m('SYM Z1 125 FI · 空冷 SOHC 4V',P_AC125()),
+      '活力 Vivo 125 (2016-)':m('SYM 活力 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'GT Super 2 125 (2018-)':m('SYM GT Super 2 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'Krider 150 (2020-)':m('SYM Krider 150 FI · 空冷 SOHC 4V',P_AC125()),
+      'GTS 300i (2021-)':m('SYM GTS 300i FI · 水冷 SOHC 4V · 油箱 12L',P_WC300(),'rd'),
+      'MAXSYM TL 508 (2020-)':m('SYM MAXSYM TL 508 · 水冷 雙缸 · 大型速克達',P_WC500(),'rd'),
+      'Wolf 125 (檔車)':m('SYM Wolf T2/T3 125 · 空冷 · 檔車',P_GEAR()),
+      'NHT 125 (檔車)':m('SYM NHT 125 · 空冷 · 檔車',P_GEAR()),
     },
     'Kymco 光陽':{
-      'GP 125 (2017-)':{name:'GP 125',spec:'Kymco GP 125 FI · 空冷 SOHC 4V · 油箱 6.5L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'Racing S 150 (2019-)':{name:'Racing S 150',spec:'Kymco Racing S 150 FI · 空冷 SOHC 4V · 油箱 7.0L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'Many 125 (2016-)':{name:'Many 125',spec:'Kymco Many 125 FI · 空冷 SOHC 4V · 油箱 6.5L · 機油 0.85L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'G-Dink 300i (2018-)':{name:'G-Dink 300i',spec:'Kymco G-Dink 300i FI · 水冷 SOHC 4V · 油箱 11.0L · 機油 1.3L',intervals:{oil:3000,gear:6000,air:6000,plug:10000,belt:20000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
-      'AK 550 (2017-)':{name:'AK 550',spec:'Kymco AK 550 FI · 水冷 DOHC 4V · 油箱 15.0L · 機油 2.0L',intervals:{oil:5000,gear:8000,air:10000,plug:12000,belt:25000,fork:15000,tire_f:15000,tire_r:18000,battery:36}},
-      'Like 150i (2018-)':{name:'Like 150i',spec:'Kymco Like 150i FI · 空冷 SOHC 4V · 油箱 7.0L · 機油 0.9L',intervals:{oil:2000,gear:5000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'GP 125 (2017-)':m('Kymco GP 125 FI · 空冷 SOHC 4V · 油箱 6.5L',P_AC125()),
+      'New Many 125 (2019-)':m('Kymco New Many 125 FI · 空冷 SOHC 4V · 油箱 6.5L',P_AC125()),
+      'Many 110 EV (電動)':m('Kymco Many EV · 電動',P_EV()),
+      'VJR 125 (2014-)':m('Kymco VJR 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'Racing S 125/150 (2019-)':m('Kymco Racing S 150 FI · 空冷 SOHC 4V · 油箱 7.0L',P_AC125(),'rd'),
+      'KRV 180 (2021-)':m('Kymco KRV 180 FI · 水冷 SOHC 4V · 油箱 7.5L',P_WC125(),'rd'),
+      'KRV Moto 180 (2022-)':m('Kymco KRV Moto 180 FI · 水冷 SOHC 4V',P_WC125(),'rd'),
+      'DT X360 (2021-)':m('Kymco DT X360 FI · 水冷 · ADV 速克達',P_WC300(),'rd'),
+      'Like 125/150 (2018-)':m('Kymco Like 150i FI · 空冷 SOHC 4V · 油箱 7.0L',P_AC125()),
+      'Nice 100/115 (2016-)':m('Kymco Nice 115 FI · 空冷 SOHC 2V',P_AC125()),
+      'Famous 125 (2015-)':m('Kymco Famous 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'CUE 115 (2020-)':m('Kymco CUE 115 FI · 空冷 SOHC 2V',P_AC125()),
+      'GP2 125 (2022-)':m('Kymco GP2 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'G-Dink 300i (2018-)':m('Kymco G-Dink 300i FI · 水冷 SOHC 4V · 油箱 11L',P_WC300(),'rd'),
+      'X-Town 300i (2017-)':m('Kymco X-Town 300i FI · 水冷 · 油箱 12.5L',P_WC300(),'rd'),
+      'AK 550 (2017-)':m('Kymco AK 550 FI · 水冷 DOHC 雙缸 · 油箱 15L',P_WC500(),'rd'),
+      'RomanS 110 (2016-)':m('Kymco RomanS 110 FI · 空冷 SOHC 2V',P_AC125()),
     },
     'Honda':{
-      'PCX 125 (2018-)':{name:'PCX 125',spec:'Honda PCX 125 FI · 水冷 SOHC 4V · 油箱 8.1L · 機油 0.9L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'ADV 150 (2019-)':{name:'ADV 150',spec:'Honda ADV 150 FI · 水冷 SOHC 4V · 油箱 8.1L · 機油 0.9L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'ADV 160 (2022-)':{name:'ADV 160',spec:'Honda ADV 160 FI · 水冷 SOHC 4V · 油箱 8.1L · 機油 0.9L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
-      'Forza 350 (2021-)':{name:'Forza 350',spec:'Honda Forza 350 FI · 水冷 SOHC 4V · 油箱 11.5L · 機油 1.6L',intervals:{oil:5000,gear:null,air:8000,plug:16000,belt:25000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
-      'SH 125i (2017-)':{name:'SH 125i',spec:'Honda SH 125i FI · 空冷 SOHC 4V · 油箱 7.0L · 機油 0.85L',intervals:{oil:3000,gear:null,air:8000,plug:12000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'PCX 125 (2018-)':m('Honda PCX 125 FI · 水冷 SOHC 4V · 油箱 8.1L',IV(3000,null,8000,12000,20000,10000,12000,15000,36),'rd'),
+      'PCX 160 (2021-)':m('Honda PCX 160 FI · 水冷 SOHC 4V · 油箱 8.1L',IV(3000,null,8000,12000,20000,10000,12000,15000,36),'rd'),
+      'ADV 150 (2019-)':m('Honda ADV 150 FI · 水冷 SOHC 4V · 油箱 8.1L',IV(3000,null,8000,12000,20000,10000,12000,15000,36),'rd'),
+      'ADV 160 (2022-)':m('Honda ADV 160 FI · 水冷 SOHC 4V · 油箱 8.1L',IV(3000,null,8000,12000,20000,10000,12000,15000,36),'rd'),
+      'Forza 350 (2021-)':m('Honda Forza 350 FI · 水冷 SOHC 4V · 油箱 11.5L',IV(5000,null,8000,16000,25000,12000,15000,18000,36),'rd'),
+      'Forza 750 (2021-)':m('Honda Forza 750 · 水冷 雙缸 · 大型速克達',P_WC500(),'rd'),
+      'SH 125i (2017-)':m('Honda SH 125i FI · 空冷 SOHC 4V · 油箱 7.0L',IV(3000,null,8000,12000,20000,10000,12000,15000,36),'rd'),
+      'Dio 110 (2018-)':m('Honda Dio 110 FI · 空冷 SOHC 2V',P_AC125()),
+      'CBR150R (2019-)':m('Honda CBR150R · 水冷 DOHC · 149cc · 檔車',P_GEAR()),
+      'CB150R (2019-)':m('Honda CB150R · 水冷 DOHC · 149cc · 檔車',P_GEAR()),
+      'MSX125 Grom (2016-)':m('Honda MSX125 Grom · 空冷 · 125cc · 檔車',P_GEAR()),
+      'Monkey 125 (2018-)':m('Honda Monkey 125 · 空冷 · 檔車',P_GEAR()),
+      'CB650R (2019-)':m('Honda CB650R · 水冷 DOHC · 649cc 四缸 · 檔車',P_BIGGEAR()),
+      'CBR650R (2019-)':m('Honda CBR650R · 水冷 DOHC · 649cc 四缸 · 檔車',P_BIGGEAR()),
+      'Rebel 500 (2017-)':m('Honda Rebel 500 · 水冷 · 471cc 雙缸 · 檔車',P_BIGGEAR()),
+      'CB300R (2018-)':m('Honda CB300R · 水冷 · 286cc · 檔車',P_BIGGEAR()),
+      'CRF300L (2021-)':m('Honda CRF300L · 水冷 · 286cc · 越野檔車',P_BIGGEAR()),
     },
     'Suzuki':{
-      'Address 110 (2016-)':{name:'Address 110',spec:'Suzuki Address 110 FI · 空冷 SOHC 2V · 油箱 6.0L · 機油 0.9L',intervals:{oil:2000,gear:4000,air:6000,plug:8000,belt:15000,fork:8000,tire_f:12000,tire_r:15000,battery:36}},
-      'Avenis 125 (2022-)':{name:'Avenis 125',spec:'Suzuki Avenis 125 FI · 空冷 SOHC 4V · 油箱 5.2L · 機油 0.9L',intervals:{oil:2000,gear:4000,air:6000,plug:8000,belt:20000,fork:10000,tire_f:12000,tire_r:15000,battery:36}},
+      'Address 110 (2016-)':m('Suzuki Address 110 FI · 空冷 SOHC 2V · 油箱 6.0L',IV(2000,4000,6000,8000,15000,8000,12000,15000,36)),
+      'Saluto 125 (2019-)':m('Suzuki Saluto 125 FI · 空冷 SOHC 2V',P_AC125()),
+      'Avenis 125 (2022-)':m('Suzuki Avenis 125 FI · 空冷 SOHC 4V · 油箱 5.2L',P_AC125()),
+      'Burgman 200/400 (速克達)':m('Suzuki Burgman · 水冷 · 大型速克達',P_WC300(),'rd'),
+      'GSX-R150 (2017-)':m('Suzuki GSX-R150 · 水冷 DOHC · 147cc · 檔車',P_GEAR()),
+      'GSX-S150 (2017-)':m('Suzuki GSX-S150 · 水冷 DOHC · 147cc · 檔車',P_GEAR()),
+      'GSX-R1000 (大型重機)':m('Suzuki GSX-R1000 · 水冷 四缸 · 檔車',P_BIGGEAR()),
+      'V-Strom 250 (2017-)':m('Suzuki V-Strom 250 · 水冷 雙缸 · 檔車',P_BIGGEAR()),
+      'SV650 (2016-)':m('Suzuki SV650 · 水冷 V型雙缸 · 檔車',P_BIGGEAR()),
+    },
+    'PGO 摩特動力':{
+      'Tigra 125/150 (2016-)':m('PGO Tigra 150 FI · 水冷 SOHC 4V',P_WC125(),'rd'),
+      'Spring 125 (2017-)':m('PGO Spring 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'Ur1 (電動)':m('PGO Ur1 · 電動 · 換電式',P_EV()),
+      'BON 125 (2018-)':m('PGO BON 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'J-Bubu 115/125 (2016-)':m('PGO J-Bubu 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'Alloro 125 (2015-)':m('PGO Alloro 125 FI · 空冷 SOHC 4V',P_AC125()),
+    },
+    'Aeon 宏佳騰':{
+      'Ai-1 / Ai-3 (電動)':m('Aeon Ai-1 Sport · 電動 · 換電式',P_EV()),
+      'OZS 150 (2018-)':m('Aeon OZS 150 FI · 水冷 SOHC 4V',P_WC125(),'rd'),
+      'Elite 125/150 (2016-)':m('Aeon Elite 150 FI · 空冷 SOHC 4V',P_AC125()),
+      'My 125 (2017-)':m('Aeon My 125 FI · 空冷 SOHC 4V',P_AC125()),
+      'Sentinel 350 (2022-)':m('Aeon Sentinel 350 · 水冷 · ADV 速克達',P_WC300(),'rd'),
     },
     'Vespa':{
-      'Sprint 150 (2016-)':{name:'Vespa Sprint 150',spec:'Vespa Sprint 150 FI · 空冷 SOHC 4V · 油箱 8.5L · 機油 1.0L',intervals:{oil:5000,gear:null,air:8000,plug:10000,belt:20000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
-      'GTS 300 HPE (2020-)':{name:'Vespa GTS 300 HPE',spec:'Vespa GTS 300 HPE FI · 水冷 SOHC 4V · 油箱 9.0L · 機油 1.4L',intervals:{oil:6000,gear:null,air:8000,plug:12000,belt:25000,fork:12000,tire_f:15000,tire_r:18000,battery:36}},
+      'Primavera 125/150 (2014-)':m('Vespa Primavera 150 FI · 空冷 SOHC 4V · 油箱 7L',IV(5000,null,8000,10000,20000,12000,12000,15000,36)),
+      'Sprint 125/150 (2016-)':m('Vespa Sprint 150 FI · 空冷 SOHC 4V · 油箱 8.5L',IV(5000,null,8000,10000,20000,12000,12000,15000,36)),
+      'GTS 300 HPE (2020-)':m('Vespa GTS 300 HPE FI · 水冷 SOHC 4V · 油箱 9L',IV(6000,null,8000,12000,25000,12000,15000,18000,36),'rd'),
+      'LX 125 (2013-)':m('Vespa LX 125 · 空冷 SOHC 4V',IV(5000,null,8000,10000,20000,12000,12000,15000,36)),
+      'Primavera S / Sprint S':m('Vespa Sprint S 150 · 空冷 SOHC 4V',IV(5000,null,8000,10000,20000,12000,12000,15000,36)),
+    },
+    'KTM':{
+      'Duke 125 (2017-)':m('KTM 125 Duke · 水冷 DOHC · 125cc · 檔車',P_GEAR()),
+      'Duke 200 (2017-)':m('KTM 200 Duke · 水冷 DOHC · 200cc · 檔車',P_BIGGEAR()),
+      'Duke 250 (2017-)':m('KTM 250 Duke · 水冷 DOHC · 250cc · 檔車',P_BIGGEAR()),
+      'Duke 390 (2017-)':m('KTM 390 Duke · 水冷 DOHC · 373cc · 檔車',P_BIGGEAR()),
+      'RC 390 (2017-)':m('KTM RC 390 · 水冷 DOHC · 373cc · 檔車',P_BIGGEAR()),
+      'Adventure 390 (2020-)':m('KTM 390 Adventure · 水冷 · 越野檔車',P_BIGGEAR()),
+    },
+    'Kawasaki':{
+      'Ninja 400 (2018-)':m('Kawasaki Ninja 400 · 水冷 · 399cc 雙缸 · 檔車',P_BIGGEAR()),
+      'Z400 (2019-)':m('Kawasaki Z400 · 水冷 · 399cc 雙缸 · 檔車',P_BIGGEAR()),
+      'Ninja 250 (2018-)':m('Kawasaki Ninja 250 · 水冷 · 249cc 雙缸 · 檔車',P_BIGGEAR()),
+      'Z650 (2017-)':m('Kawasaki Z650 · 水冷 · 649cc 雙缸 · 檔車',P_BIGGEAR()),
+      'Ninja 650 (2017-)':m('Kawasaki Ninja 650 · 水冷 · 649cc 雙缸 · 檔車',P_BIGGEAR()),
+      'Z900 (2017-)':m('Kawasaki Z900 · 水冷 · 948cc 四缸 · 檔車',P_BIGGEAR()),
+      'Versys 650 (2015-)':m('Kawasaki Versys 650 · 水冷 雙缸 · 檔車',P_BIGGEAR()),
+    },
+    'BMW Motorrad':{
+      'G 310 R (2017-)':m('BMW G 310 R · 水冷 · 313cc · 檔車',P_BIGGEAR()),
+      'G 310 GS (2017-)':m('BMW G 310 GS · 水冷 · 313cc · 越野檔車',P_BIGGEAR()),
+      'C 400 X / GT (速克達)':m('BMW C 400 · 水冷 · 大型速克達',P_WC300()),
+      'R 1250 GS (2019-)':m('BMW R 1250 GS · 水冷 水平對臥雙缸 · 檔車',P_BIGGEAR()),
+      'F 900 R (2020-)':m('BMW F 900 R · 水冷 雙缸 · 檔車',P_BIGGEAR()),
     },
     'Gogoro':{
-      'Gogoro 2 系列':{name:'Gogoro 2',spec:'Gogoro 2 · 電動 · 換電式 · 最大扭矩 25 Nm',intervals:{oil:null,gear:null,air:null,plug:null,belt:null,fork:null,tire_f:12000,tire_r:15000,battery:null}},
-      'Gogoro VIVA 系列':{name:'Gogoro VIVA',spec:'Gogoro VIVA · 電動 · 換電式 · 最大扭矩 20 Nm',intervals:{oil:null,gear:null,air:null,plug:null,belt:null,fork:null,tire_f:12000,tire_r:15000,battery:null}},
+      'Gogoro 1 系列 (電動)':m('Gogoro 1 · 電動 · 換電式',P_EV()),
+      'Gogoro 2 系列 (電動)':m('Gogoro 2 · 電動 · 換電式',P_EV()),
+      'Gogoro 3 系列 (電動)':m('Gogoro 3 · 電動 · 換電式',P_EV()),
+      'Gogoro S 系列 (電動)':m('Gogoro S Performance · 電動 · 換電式',P_EV()),
+      'Gogoro VIVA (電動)':m('Gogoro VIVA · 電動 · 換電式',P_EV()),
+      'Gogoro VIVA MIX (電動)':m('Gogoro VIVA MIX · 電動 · 換電式',P_EV()),
+      'Gogoro VIVA XL (電動)':m('Gogoro VIVA XL · 電動 · 換電式',P_EV()),
+      'Gogoro CrossOver (電動)':m('Gogoro CrossOver · 電動 · 換電式',P_EV()),
+      'Gogoro Premium (電動)':m('Gogoro Premium · 電動 · 換電式',P_EV()),
+    },
+    'Other 其他 / 電動':{
+      'eMOVING iE125 (中華電動)':m('中華 eMOVING iE125 · 電動',P_EV()),
+      'eMOVING EZ1 (中華電動)':m('中華 eMOVING EZ1 · 電動',P_EV()),
+      'Ionex 系列 (光陽電動)':m('Kymco Ionex · 電動',P_EV()),
+      '其他車款（自行輸入規格）':m('請於下方自行填寫車型與規格',ND),
     }
   };
 
@@ -429,6 +567,8 @@
     var info=document.getElementById(infoId);
     if(info){
       var iv=d.intervals, parts=[];
+      if(!iv){ info.innerHTML='此車款尚無原廠保養週期資料，提醒不顯示週期，可自行記錄。規格僅供參考。'; info.style.display='block'; }
+      else {
       if(iv.oil) parts.push('機油 '+iv.oil+' km');
       if(iv.gear) parts.push('齒輪油 '+iv.gear+' km');
       if(iv.air) parts.push('空濾 '+iv.air+' km');
@@ -436,12 +576,17 @@
       if(iv.belt) parts.push('皮帶 '+iv.belt+' km');
       if(iv.fork) parts.push('前叉油 '+iv.fork+' km');
       if(iv.battery) parts.push('電瓶建議 '+iv.battery+' 個月更換');
-      info.innerHTML='<b>原廠建議週期</b>　'+parts.join('　·　');
+      var coolNote = d.cooling==='water' ? '<br><b style="color:#0E7490;">水冷車</b> — 含冷卻液 / 水箱精提醒' : (d.cooling==='air' ? '<br><span style="color:#6B6E76;">氣冷車 — 無水箱，不顯示冷卻液</span>' : '');
+      var brakeNote='';
+      if(d.brake){ var bt=(d.brake.f==='disc'?'前碟':'前鼓')+(d.brake.r==='disc'?'後碟':'後鼓'); brakeNote='<br><b style="color:#C0392B;">煞車</b> — '+bt+(d.brake.r==='drum'?'（後鼓煞，無後碟盤提醒）':''); }
+      info.innerHTML='<b>原廠建議週期</b>　'+parts.join('　·　')+coolNote+brakeNote;
       info.style.display='block';
+      }
     }
-    if(nameId){ var ne=document.getElementById(nameId); if(ne&&!ne.value) ne.value=d.name; }
+    var dname = d.name || modelKey.replace(/\s*\([^)]*\)\s*$/,'').trim();
+    if(nameId){ var ne=document.getElementById(nameId); if(ne) ne.value=dname; }
     if(specId){ var se=document.getElementById(specId); if(se) se.value=d.spec; }
-    if(intervalsStore!=null){ intervalsStore.modelIntervals=d.intervals; intervalsStore.modelKey=brand+'|'+modelKey; }
+    if(intervalsStore!=null){ intervalsStore.modelIntervals=d.intervals; intervalsStore.modelKey=brand+'|'+modelKey; intervalsStore.modelPicked=true; intervalsStore.ev=!!d.ev; intervalsStore.cooling=d.cooling||null; intervalsStore.brake=d.brake||null; }
   }
 
   var _pendingIntervals={};
@@ -455,6 +600,7 @@
     tire_r:{label:'後輪胎',color:'#16181D',track:15000},
     tire_f:{label:'前輪胎',color:'#0F766E',track:12000},
     fork:{label:'前叉油',color:'#2E7D52',track:8000},
+    coolant:{label:'冷卻液 / 水箱精',color:'#0E7490',track:40000},
     brake:{label:'煞車',color:'#C0392B',track:null},
     engine:{label:'引擎',color:'#9A1F1F',track:null},
     battery:{label:'電瓶',color:'#5B6470',track:null},
@@ -671,7 +817,7 @@
     var spec = document.getElementById('veSpec').value.trim();
     var id = document.getElementById('veId').value;
     var extra = {};
-    if(_pendingIntervals.modelIntervals){ extra.modelIntervals=_pendingIntervals.modelIntervals; extra.modelKey=_pendingIntervals.modelKey; }
+    if(_pendingIntervals.modelPicked){ extra.modelIntervals=_pendingIntervals.modelIntervals||null; extra.modelKey=_pendingIntervals.modelKey; extra.modelPicked=true; extra.ev=!!_pendingIntervals.ev; extra.cooling=_pendingIntervals.cooling||null; extra.brake=_pendingIntervals.brake||null; }
     _pendingIntervals={};
     if(id){
       state.vehicles = state.vehicles.map(function(v){
@@ -720,6 +866,10 @@
     var vobj = {id:id,name:name,plate:plate,spec:spec};
     if(_pendingIntervals.modelIntervals) vobj.modelIntervals=_pendingIntervals.modelIntervals;
     if(_pendingIntervals.modelKey) vobj.modelKey=_pendingIntervals.modelKey;
+    if(_pendingIntervals.modelPicked) vobj.modelPicked=true;
+    if(_pendingIntervals.ev) vobj.ev=true;
+    if(_pendingIntervals.cooling) vobj.cooling=_pendingIntervals.cooling;
+    if(_pendingIntervals.brake) vobj.brake=_pendingIntervals.brake;
     _pendingIntervals={};
     state.vehicles = [vobj];
     saveVehicles();
@@ -796,39 +946,97 @@
       {label:'離合器 / 碗公',re:/離合器|碗公|牽轉具/,track:30000,color:'#0E7490'},
       {label:'傳動小海綿',re:/小海綿|傳動.*海綿/,track:5000,color:'#0D9488'}
     ]},
-    {name:'煞車系統',color:'#C0392B',items:[
-      {label:'煞車油',re:/煞車油/,track:12000,color:'#C0392B'},
-      {label:'前來令片',re:/前.*來令|來令.*前/,track:12000,color:'#C0392B',ref:true},
-      {label:'後煞車皮',re:/後.*煞車皮|後.*來令|後煞車/,track:15000,color:'#9A1F1F',ref:true},
-      {label:'前碟盤',re:/碟盤/,track:40000,color:'#5B6470',ref:true}
-    ]},
     {name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]},
     {name:'電系',color:'#5B6470',items:[{cat:'battery',timeBased:true,trackMonths:30,color:'#5B6470'}]}
   ];
+  // 電動車專用耗材清單（無機油/空濾/火星塞/12V電瓶；有減速箱齒輪油、傳動皮帶、煞車、輪胎、冷卻液）
+  var EV_SYSTEMS=[
+    {name:'動力 / 傳動',color:'#1B4FD0',items:[
+      {cat:'gear',label:'減速箱齒輪油'},
+      {label:'傳動皮帶',re:/皮帶/,track:24000,color:'#BE5A1E'}
+    ]},
+    {name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]}
+  ];
+  // 水冷系統群組（依車型只對水冷車顯示）
+  var COOLING_GROUP={name:'冷卻 / 散熱',color:'#0E7490',items:[
+    {cat:'coolant'}
+  ]};
+  // 判斷冷卻方式：優先用存的旗標，否則從規格文字推測
+  function coolingType(){
+    var v=activeVehicle(); if(!v) return null;
+    if(v.cooling) return v.cooling;
+    var s=v.spec||''; return /水冷/.test(s)?'water':(/空冷|氣冷/.test(s)?'air':null);
+  }
+  // 判斷煞車型式：優先用存的旗標，否則從規格推測，再否則預設前碟後鼓
+  function brakeConfig(){
+    var v=activeVehicle();
+    if(v&&v.brake) return v.brake;
+    var s=(v&&v.spec)||'';
+    if(/前後碟|雙碟/.test(s)) return {f:'disc',r:'disc'};
+    if(/前碟後鼓/.test(s)) return {f:'disc',r:'drum'};
+    if(/檔車|重機|越野/.test(s)) return {f:'disc',r:'disc'};
+    return {f:'disc',r:'drum'};
+  }
+  // 依煞車型式產生煞車系統群組（碟煞→來令片+碟盤；鼓煞→煞車蹄片；有碟煞才顯示煞車油）
+  function brakeGroup(){
+    var b=brakeConfig(), items=[];
+    if(b.f==='disc'||b.r==='disc') items.push({label:'煞車油',re:/煞車油/,track:12000,color:'#C0392B'});
+    if(b.f==='disc'){
+      items.push({label:'前來令片',re:/前.*來令|來令.*前/,track:12000,color:'#C0392B',ref:true});
+      items.push({label:'前碟盤',re:/前.*碟盤|碟盤.*前|前碟/,track:40000,color:'#5B6470',ref:true});
+    }else{
+      items.push({label:'前煞車蹄片（鼓煞）',re:/前.*蹄|前.*鼓|前鼓/,track:20000,color:'#C0392B',ref:true});
+    }
+    if(b.r==='disc'){
+      items.push({label:'後來令片',re:/後.*來令|來令.*後/,track:15000,color:'#9A1F1F',ref:true});
+      items.push({label:'後碟盤',re:/後.*碟盤|碟盤.*後|後碟/,track:40000,color:'#5B6470',ref:true});
+    }else{
+      items.push({label:'後煞車蹄片（鼓煞）',re:/後.*蹄|後.*鼓|後鼓|後.*煞車皮|後.*來令|後煞車/,track:20000,color:'#9A1F1F',ref:true});
+    }
+    return {name:'煞車系統',color:'#C0392B',items:items};
+  }
+  function activeSystems(){
+    var v=activeVehicle();
+    var base=(v&&v.ev)?EV_SYSTEMS.slice():SYSTEMS.slice();
+    var idx=base.findIndex(function(s){return /懸吊/.test(s.name);});
+    if(idx<0) idx=base.length;
+    var inject=[brakeGroup()];
+    if(coolingType()==='water') inject.push(COOLING_GROUP);
+    base=base.slice(0,idx).concat(inject,base.slice(idx));
+    return base;
+  }
   function monthsBetween(d){ if(!d)return null; var dt=new Date(d); if(isNaN(dt))return null; var n=new Date(); return Math.max(0,(n.getFullYear()-dt.getFullYear())*12+(n.getMonth()-dt.getMonth())); }
   function fmtAge(m){ return m>=12?(m/12).toFixed(1)+' 年':m+' 個月'; }
   function voltHealth(v){ if(v>=12.7)return{label:'健康',color:'#2E7D52'}; if(v>=12.4)return{label:'普通',color:'#B5781A'}; return{label:'偏弱',color:'#C0392B'}; }
-  function activeIntervals(){
-    var v=state.vehicles.find(function(v){return v.id===state.activeId;});
-    return (v&&v.modelIntervals)||{};
+  function activeVehicle(){ return state.vehicles.find(function(v){return v.id===state.activeId;}); }
+  function activeIntervals(){ var v=activeVehicle(); return (v&&v.modelIntervals)||{}; }
+  function modelDriven(){ var v=activeVehicle(); return !!(v&&v.modelPicked); }
+
+  // Map a reminder item to its interval key in the MOTO_DB intervals object
+  function ivKeyFor(item){
+    if(item.cat){ if(['oil','gear','air','plug','fork','tire_f','tire_r'].indexOf(item.cat)>=0) return item.cat; return null; }
+    if(/皮帶/.test(item.label||'')) return 'belt';
+    if(/前叉/.test(item.label||'')) return 'fork';
+    if(/空[氣濾]|空濾/.test(item.label||'')) return 'air';
+    if(/火星塞/.test(item.label||'')) return 'plug';
+    return null;
   }
   function resolveTrack(item){
-    // Vehicle-specific intervals override defaults
-    var iv=activeIntervals();
-    if(item.cat){
-      var map={oil:'oil',gear:'gear',air:'air',plug:'plug',fork:'fork',tire_f:'tire_f',tire_r:'tire_r'};
-      if(map[item.cat]!=null && iv[map[item.cat]]!=null) return iv[map[item.cat]];
-      return CATS[item.cat].track;
+    var iv=activeIntervals(), key=ivKeyFor(item);
+    var def=item.cat?CATS[item.cat].track:item.track;
+    if(key){
+      // 此項目對應原廠保養週期。選了車款 → 完全依車款資料（無資料=null→隱藏）；手動 → 有資料用資料、否則用預設。
+      if(modelDriven()) return iv[key]==null?null:iv[key];
+      return iv[key]!=null?iv[key]:def;
     }
-    // regex items: map by label pattern
-    if(/皮帶/.test(item.label||'') && iv.belt!=null) return iv.belt;
-    if(/前叉/.test(item.label||'') && iv.fork!=null) return iv.fork;
-    return item.track;
+    // 沒有對應原廠週期的通用項目（煞車油、普利珠、離合器等）→ 一律用自身預設週期。
+    return def;
   }
   function resolveItem(item){
     if(item.timeBased){
       var iv=activeIntervals();
-      var trackM=iv.battery||item.trackMonths;
+      var trackM=modelDriven() ? iv.battery : (iv.battery||item.trackMonths);
+      if(modelDriven() && trackM==null) return null;
       var blast=item.cat?latestOf(item.cat):latestMatch(item.re);
       var ms=blast?monthsBetween(blast.date):null;
       var volt=null; if(blast){var vm=((blast.note||'')+' '+(blast.item||'')).match(/(\d{1,2}(?:\.\d)?)\s*[vV]/);if(vm)volt=parseFloat(vm[1]);}
@@ -838,7 +1046,7 @@
     if(item.cat){
       var c=CATS[item.cat];
       track=resolveTrack(item);if(!track)return null;
-      label=c.label;color=c.color;last=lastOf(item.cat);
+      label=item.label||c.label;color=c.color;last=lastOf(item.cat);
       var l2=latestOf(item.cat);model=l2?cleanModel(l2.item):'';
     }else{
       label=item.label;color=item.color;track=resolveTrack(item);last=lastMatch(item.re);
@@ -871,11 +1079,11 @@
       +(lastInfo?'<div class="glast">'+lastInfo+'</div>':'')+'</div>';
   }
   function renderReminders(){
-    var due=0,soon=0;
-    SYSTEMS.forEach(function(s){s.items.forEach(function(it){if(it.ref)return;var r=resolveItem(it);if(!r||r.ratio==null)return;if(r.ratio>=1)due++;else if(r.ratio>=0.8)soon++;});});
+    var due=0,soon=0,SYS=activeSystems();
+    SYS.forEach(function(s){s.items.forEach(function(it){if(it.ref)return;var r=resolveItem(it);if(!r||r.ratio==null)return;if(r.ratio>=1)due++;else if(r.ratio>=0.8)soon++;});});
     var html='';
     if(due>0||soon>0) html+='<div class="duebanner">'+(due>0?'<span class="db-due">'+due+' 項該換</span>':'')+(soon>0?'<span class="db-soon">'+soon+' 項快到</span>':'')+'</div>';
-    SYSTEMS.forEach(function(sys){
+    SYS.forEach(function(sys){
       var cards=sys.items.map(gaugeCard).join('');
       html+='<div class="sysgroup"><div class="syshead"><span class="sysbar" style="background:'+sys.color+';"></span>'+sys.name+'</div><div class="gauges">'+cards+'</div></div>';
     });
@@ -1031,8 +1239,14 @@
     Array.prototype.forEach.call(list.querySelectorAll('[data-del]'),function(el){el.onclick=function(){delRec(el.getAttribute('data-del'));};});
   }
 
+  var EV_HIDE_CATS={oil:1,air:1,plug:1,engine:1};
   function fillCatSelect(){
-    document.getElementById('fCat').innerHTML=Object.keys(CATS).map(function(k){return'<option value="'+k+'">'+CATS[k].label+'</option>';}).join('');
+    var v=activeVehicle(), isEV=!!(v&&v.ev), isWater=coolingType()==='water';
+    document.getElementById('fCat').innerHTML=Object.keys(CATS).filter(function(k){
+      if(isEV&&EV_HIDE_CATS[k]) return false;       // 電動車隱藏機油/空濾/火星塞/引擎
+      if(k==='coolant'&&!isWater) return false;     // 非水冷車隱藏冷卻液
+      return true;
+    }).map(function(k){return'<option value="'+k+'">'+CATS[k].label+(k==='gear'&&isEV?'（減速箱）':'')+'</option>';}).join('');
   }
   function startEdit(id){
     var r=state.records.filter(function(x){return x.id===id;})[0];if(!r)return;
@@ -1075,7 +1289,7 @@
   };
   document.getElementById('search').oninput=function(e){state.search=e.target.value;renderList();};
 
-  function renderAll(){renderStats();renderReminders();renderSpec();renderCostBars();renderMonthly();renderFuel();renderFilters();renderList();}
+  function renderAll(){fillCatSelect();renderStats();renderReminders();renderSpec();renderCostBars();renderMonthly();renderFuel();renderFilters();renderList();}
 
   // Wire up brand/model dropdowns
   buildBrandSelects('setupBrand','setupModel','setupModelInfo');
