@@ -63,6 +63,7 @@
 #app-root .b-ok{background:#E7F1EC;color:var(--green);}
 #app-root .b-soon{background:#FaF1DF;color:var(--amber);}
 #app-root .b-due{background:#FBE9E7;color:var(--red);}
+#app-root .b-ref{background:#ECEAE3;color:var(--muted);}
 #app-root .track{height:7px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:8px;}
 #app-root .gmodel{font-size:11.5px;color:var(--muted);margin:-2px 0 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #app-root .gmodel b{font-weight:500;color:var(--ink);}
@@ -89,6 +90,17 @@
 #app-root .fmeta2 .acts{margin-left:auto;display:flex;gap:6px;}
 #app-root .fmeta2 .ico{cursor:pointer;padding:2px 5px;border-radius:5px;}
 #app-root .fmeta2 .ico:hover{background:var(--paper);color:var(--ink);}
+#app-root .mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+#app-root .mstat{background:var(--surface);padding:11px 12px;}
+#app-root .mstat .k{font-size:11px;color:var(--muted);margin-bottom:3px;}
+#app-root .mstat .v{font-size:17px;font-weight:700;}
+#app-root .mstat .v small{font-size:11px;font-weight:400;color:var(--muted);}
+#app-root .mscroll{overflow-x:auto;padding-bottom:2px;}
+#app-root .mchart{display:flex;align-items:flex-end;gap:3px;height:124px;}
+#app-root .mbar{flex:0 0 13px;width:13px;border-radius:3px 3px 0 0;background:var(--blue);min-height:2px;}
+#app-root .mbar.recent{background:var(--ink);}
+#app-root .maxis{display:flex;gap:3px;margin-top:5px;}
+#app-root .myr{flex:0 0 13px;font-size:9px;color:var(--muted);font-family:'Roboto Mono',monospace;white-space:nowrap;text-align:center;overflow:visible;line-height:1;}
 #app-root .fill{height:100%;border-radius:6px;transition:width .4s;}
 #app-root .gmeta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);}
 #app-root .gmeta .km{font-family:'Roboto Mono',monospace;font-weight:500;color:var(--ink);}
@@ -179,7 +191,7 @@
 }
 </style>
 
-<!-- Setup modal (first time) -->
+<!-- Setup modal -->
 <div id="setupOverlay">
   <div id="setupBox">
     <h2>🏍️ 建立你的保養紀錄</h2>
@@ -237,7 +249,7 @@
   <div class="section">
     <h2><span class="dot"></span>保養提醒</h2>
     <div id="reminders"></div>
-    <div class="note">依車輛系統分類，各項目以「最近一次更換里程」與建議週期估算損耗。沒紀錄的項目，之後更換時在內容含對應名稱（如「前來令片」）即可自動追蹤。</div>
+    <div class="note">依車輛系統分類，各項目以「最近一次更換里程」與建議週期估算損耗。沒紀錄的項目，之後更換時在內容含對應名稱（如「前來令片」）即可自動追蹤。週期為預設值，可自行調整。</div>
   </div>
 
   <div class="section">
@@ -273,6 +285,12 @@
   </div>
 
   <div class="section">
+    <h2><span class="dot"></span>每月里程</h2>
+    <div class="card"><div id="monthly"></div></div>
+    <div class="note">用各筆里程讀數推算每月騎乘量：兩次讀數之間的距離按天數攤分到中間各月。記錄間隔長的月份會被平均掉，且部分里程為約估值，數字僅供參考趨勢。</div>
+  </div>
+
+  <div class="section">
     <h2><span class="dot"></span>油耗 / 加油</h2>
     <div class="stats" id="fuelStats" style="margin-bottom:14px;"></div>
     <div class="card">
@@ -296,7 +314,7 @@
       </div>
     </div>
     <div class="card" style="padding:4px 16px;margin-top:12px;"><div id="fuelList"></div></div>
-    <div class="note">油耗 = 行駛距離 ÷ 加油公升數。若每次都填加油時里程，距離會自動以「這次里程 − 上次里程」計算；否則用手動距離。</div>
+    <div class="note">油耗 = 行駛距離 ÷ 加油公升數。若每次都填加油時里程，距離會自動以「這次里程 − 上次里程」計算（填到滿才準）；否則用手動距離。</div>
   </div>
 
   <div class="section">
@@ -319,7 +337,7 @@
   };
 
   var CATS = {
-    oil:{label:'機油',color:'#1B4FD0',track:1500},
+    oil:{label:'機油',color:'#1B4FD0',track:1000},
     gear:{label:'齒輪油',color:'#7C3AED',track:4000},
     air:{label:'空濾',color:'#0E7490',track:6000},
     plug:{label:'火星塞',color:'#B5781A',track:10000},
@@ -359,39 +377,57 @@
     ['2020-11-27',38900,'fork','posh彈簧 + 墊片預載',500,''],
     ['2020-11-30',38784,'tire_r','Pirelli 天使胎 130/70-12 後輪',2310,''],
     ['2020-12-05',38890,'oil','Repsol Moto Racing 4T 10W40 +100cc',null,''],
+    ['2020-12-06',38910,'mod','外掛魚眼 + LED天使環按鈕',624,''],
+    ['2020-12-11',38950,'mod','RCI H4 大燈',null,''],
     ['2020-12-18',39155,'oil','Repsol 10W50',200,''],
+    ['2020-12-18',39155,'plug','CR7E火星塞(舊品)',0,'騎到一半熄火'],
+    ['2020-12-21',39200,'plug','Aracer AB8R3I',null,''],
     ['2020-12-24',39250,'plug','Aracer AB9R3I',380,''],
     ['2020-12-25',39282,'trans','原廠皮帶 4C6-E7641',580,'四萬傳動大保養'],
+    ['2020-12-25',39282,'trans','離合器牽轉具總成',500,''],
+    ['2020-12-25',39282,'trans','離合器殼整體',1100,''],
     ['2020-12-25',39282,'trans','普利珠 9g*3 + 11g*3',90,''],
-    ['2021-01-08',null,'engine','活塞 / 活塞環',1900,'四萬公里大保養'],
+    ['2021-01-08',null,'engine','氣門*2',1400,'四萬公里大保養'],
+    ['2021-01-08',null,'engine','活塞 / 活塞環',1900,''],
+    ['2021-01-08',null,'engine','塘氣門座*2',700,''],
+    ['2021-01-08',null,'engine','氣門油封*4',1200,''],
+    ['2021-01-08',null,'oil','Yamalube + 清洗噴油嘴',150,''],
     ['2021-01-21',40028,'oil','Repsol Racing 10W-50 930cc',null,''],
     ['2021-01-21',40028,'gear','Motul 80W90 120cc',null,''],
     ['2021-03-16',41219,'oil','Repsol Racing 10W-50',195,''],
+    ['2021-03-16',41219,'gear','Motul 80W90 120cc',50,''],
     ['2021-03-31',41712,'brake','煞車油 TYP200',null,''],
     ['2021-04-03',41811,'fork','Motul Fork Oil 15W',null,''],
     ['2021-04-22',42414,'oil','Repsol Racing 10W-50 900cc',195,''],
     ['2021-10-17',43510,'oil','Repsol Racing 10W-50 900cc',200,''],
+    ['2022-08-10',45166,'check','定期檢查',null,''],
     ['2022-09-08',45272,'oil','Repsol 10W-40 950cc',null,''],
     ['2022-09-08',45272,'gear','Motul 80W90 120cc',null,''],
     ['2022-11-27',45935,'fork','Motul Fork Oil 15W 100cc',null,''],
     ['2022-11-27',45935,'brake','煞車油 TYP200',null,''],
-    ['2023-02-13',47145,'tire_f','TT93GP 100/90-12 前輪',1640,''],
+    ['2023-02-13',47145,'tire_f','TT93GP 100/90-12 前輪',1640,'換胎工資150含除蠟'],
     ['2023-02-13',47145,'air','原廠空濾 / 原廠小海綿',170,''],
     ['2023-02-15',47180,'oil','Repsol Racing 10W-50',250,''],
     ['2023-03-02',47479,'trans','原廠皮帶 + 原廠普利珠 9g*3 + 原廠普利盤螺帽',null,''],
     ['2023-04-09',48473,'oil','Repsol 10W-50 950cc',null,''],
+    ['2023-04-09',48473,'gear','75W90 齒輪油',null,''],
     ['2023-06-29',49708,'oil','Repsol 10W-50 950cc',null,''],
     ['2023-06-29',49708,'gear','Motul 80W90',290,''],
     ['2023-09-19',51095,'oil','Repsol 10W-50 950cc',null,''],
+    ['2023-09-19',51095,'gear','Motul 80W90',null,''],
+    ['2024-02-29',53000,'oil','Repsol 10W-50 950cc',null,'里程約53xxx'],
     ['2024-03-19',54914,'fork','Motul Fork Oil 15W 110cc + 滑襯',null,''],
     ['2024-03-19',54914,'trans','原廠普利珠 9g*3 + 12g*3 + 原廠碗公(打磨)',null,''],
     ['2024-03-19',54914,'tire_r','Pirelli 天使胎 130/70-12 後輪',1900,'含工資150'],
+    ['2024-03-19',54914,'brake','後煞車',null,''],
+    ['2024-07-08',null,'oil','Repsol 剩油',null,''],
+    ['2024-09-05',58898,'oil','Shell Advance Ultra',null,''],
     ['2024-09-11',59061,'trans','原廠普利盤 + 原廠楓葉盤 + 原廠離合器 + 原廠碗公',null,''],
     ['2024-11-05',60170,'oil','Repsol 10W-50',null,''],
     ['2024-11-05',60170,'gear','Motul 80W90',null,''],
     ['2025-01-17',61750,'oil','Repsol 5W-40',null,''],
     ['2025-01-17',61750,'gear','Motul 80W90',null,''],
-    ['2025-02-21',62200,'battery','DYNAVOLT 藍騎士 MG7B-4-C',null,'實測電壓 12.8V'],
+    ['2025-02-21',62200,'battery','DYNAVOLT 藍騎士 MG7B-4-C',null,'實測電壓 12.8V；里程約估'],
     ['2026-03-06',63068,'oil','歐多麥自助換油機 900cc',145,'抽出1000cc+加入900cc'],
     ['2026-06-11',64244,'oil','歐多麥自助換油機 900cc',145,'抽出1000cc+加入900cc'],
     ['2026-06-22',64456,'brake','前來令片',null,'']
@@ -403,7 +439,6 @@
   function fmtMoney(n){return 'NT$'+Math.round(n).toLocaleString('en-US');}
   function esc(s){return String(s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
 
-  // ---- Storage ----
   async function save(){ try{ await storage.set('records', JSON.stringify(state.records)); }catch(e){} }
   async function saveFuel(){ try{ await storage.set('fuel', JSON.stringify(state.fuel)); }catch(e){} }
   async function saveVehicle(){ try{ await storage.set('vehicle', JSON.stringify(state.vehicle)); }catch(e){} }
@@ -412,14 +447,12 @@
     var vRes = await storage.get('vehicle');
     if(vRes && vRes.value){
       state.vehicle = JSON.parse(vRes.value);
-      // Has vehicle config — load records
       var rRes = await storage.get('records');
       state.records = (rRes && rRes.value) ? JSON.parse(rRes.value) : [];
       var fRes = await storage.get('fuel');
       state.fuel = (fRes && fRes.value) ? JSON.parse(fRes.value) : [];
       showApp();
     } else {
-      // First time — show setup
       document.getElementById('setupOverlay').classList.add('open');
     }
   }
@@ -436,26 +469,16 @@
     var name = document.getElementById('setupName').value.trim();
     var plate = document.getElementById('setupPlate').value.trim().toUpperCase();
     var spec = document.getElementById('setupSpec').value.trim();
-    var mileage = parseInt(document.getElementById('setupMileage').value)||0;
     if(!name){ document.getElementById('setupName').focus(); return; }
     state.vehicle = {name:name, plate:plate, spec:spec};
-    state.records = [];
-    state.fuel = [];
-    // Store initial mileage as a placeholder record if provided
-    if(mileage>0){
-      // We don't add a fake record; just note it — user will add real records
-    }
-    await saveVehicle();
-    await save();
-    await saveFuel();
+    state.records = []; state.fuel = [];
+    await saveVehicle(); await save(); await saveFuel();
     showApp();
   };
 
   document.getElementById('setupDemoBtn').onclick = async function(){
-    state.vehicle = {name:'勁戰三代', plate:'179-PVF', spec:'Yamaha Cygnus-X 三代 125 FI · 空冷 SOHC 4V · 油箱 7.4L'};
-    state.records = DEMO_SEED.map(function(r,i){
-      return {id:'d'+i,date:r[0],mileage:r[1],cat:r[2],item:r[3],cost:r[4],note:r[5]};
-    });
+    state.vehicle = {name:'勁戰三代', plate:'ABC-1234', spec:'Yamaha Cygnus-X 三代 125 FI · 空冷 SOHC 4V · 油箱 7.4L'};
+    state.records = DEMO_SEED.map(function(r,i){ return {id:'d'+i,date:r[0],mileage:r[1],cat:r[2],item:r[3],cost:r[4],note:r[5]}; });
     state.fuel = [{id:'f0',date:'2026-06-18',mileage:null,liters:6.06,price:32.4,discount:5,distance:170,note:'92無鉛'}];
     await saveVehicle(); await save(); await saveFuel();
     showApp();
@@ -478,16 +501,13 @@
     document.getElementById('vehicleOverlay').classList.remove('open');
     renderHeader();
   };
-  document.getElementById('veCancelBtn').onclick = function(){
-    document.getElementById('vehicleOverlay').classList.remove('open');
-  };
+  document.getElementById('veCancelBtn').onclick = function(){ document.getElementById('vehicleOverlay').classList.remove('open'); };
   document.getElementById('veResetBtn').onclick = async function(){
     if(!confirm('確定要清除所有紀錄並重設？此操作無法復原。')) return;
     storage.del('records'); storage.del('fuel'); storage.del('vehicle');
     location.reload();
   };
 
-  // ---- Header ----
   function renderHeader(){
     var v = state.vehicle;
     document.getElementById('appTitle').textContent = (v.name||'保養紀錄') + ' · 保養紀錄';
@@ -585,7 +605,6 @@
   function cleanModel(s){ return (s||'').replace(/[／\/]?\s*(前輪|後輪|前胎|後胎)/g,'').replace(/\s{2,}/g,' ').trim(); }
   function lastMatch(re){ var b=null; state.records.forEach(function(r){if(r.mileage&&re.test(r.item||'')){if(!b||r.mileage>b.mileage)b=r;}}); return b; }
   function latestMatch(re){ var b=null; state.records.forEach(function(r){if(re.test(r.item||'')){if(!b||(r.date||'')>(b.date||''))b=r;}}); return b; }
-
   function parseRollers(s){
     var re=/(\d+(?:\.\d+)?)\s*g?\s*[*×xX]\s*(\d+)/g,m,parts=[],total=0,count=0;
     while((m=re.exec(s||''))){var w=parseFloat(m[1]),n=parseInt(m[2],10);if(w>30)continue;parts.push(w+'g × '+n);total+=w*n;count+=n;}
@@ -603,13 +622,14 @@
     ]},
     {name:'煞車系統',color:'#C0392B',items:[
       {label:'煞車油',re:/煞車油/,track:12000,color:'#C0392B'},
-      {label:'前來令片',re:/前.*來令|來令.*前/,track:12000,color:'#C0392B'},
-      {label:'後煞車皮',re:/後.*煞車皮|後.*來令|後煞車/,track:15000,color:'#9A1F1F'},
-      {label:'前碟盤',re:/碟盤/,track:40000,color:'#5B6470'}
+      {label:'前來令片',re:/前.*來令|來令.*前/,track:12000,color:'#C0392B',ref:true},
+      {label:'後煞車皮',re:/後.*煞車皮|後.*來令|後煞車/,track:15000,color:'#9A1F1F',ref:true},
+      {label:'前碟盤',re:/碟盤/,track:40000,color:'#5B6470',ref:true}
     ]},
     {name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]},
     {name:'電系',color:'#5B6470',items:[{cat:'battery',timeBased:true,trackMonths:30,color:'#5B6470'}]}
   ];
+
   function monthsBetween(dateStr){ if(!dateStr)return null; var d=new Date(dateStr); if(isNaN(d))return null; var now=new Date(); var m=(now.getFullYear()-d.getFullYear())*12+(now.getMonth()-d.getMonth()); return m<0?0:m; }
   function fmtAge(m){ return m>=12?(m/12).toFixed(1)+' 年':m+' 個月'; }
   function voltHealth(v){ if(v>=12.7)return{label:'健康',color:'#2E7D52'}; if(v>=12.4)return{label:'普通',color:'#B5781A'}; return{label:'偏弱',color:'#C0392B'}; }
@@ -636,19 +656,28 @@
     var cur=currentMileage(),since=last?cur-last.mileage:null;
     return{label:label,color:color,track:track,last:last,model:model,since:since,ratio:since==null?null:since/track};
   }
+
   function gaugeCard(item){
-    var r=resolveItem(item);if(!r)return'';
+    var r=resolveItem(item); if(!r)return'';
     var pct=r.ratio==null?0:Math.min(r.ratio,1)*100;
-    var cls='b-ok',bg=r.color;
-    if(r.ratio!=null&&r.ratio>=1){cls='b-due';bg='#C0392B';}else if(r.ratio!=null&&r.ratio>=0.8){cls='b-soon';bg='#B5781A';}
-    var txt=r.ratio==null?'無紀錄':(r.ratio>=1?'該換了':(r.ratio>=0.8?'快到了':'正常'));
+    var cls,bg=r.color,txt;
+    if(item.ref){
+      cls='b-ref';
+      txt=(r.since==null)?'無紀錄':'目視為準';
+    }else{
+      if(r.ratio!=null&&r.ratio>=1){cls='b-due';bg='#C0392B';}
+      else if(r.ratio!=null&&r.ratio>=0.8){cls='b-soon';bg='#B5781A';}
+      else cls='b-ok';
+      txt=r.ratio==null?'無紀錄':(r.ratio>=1?'該換了':(r.ratio>=0.8?'快到了':'正常'));
+    }
     var left,right,lastInfo;
     if(r.timeBased){
       left=r.monthsSince==null?'尚無紀錄':'已 '+fmtAge(r.monthsSince);right='建議 '+fmtAge(r.trackMonths);
       lastInfo=r.last&&r.last.date?'裝於 '+r.last.date.slice(0,7):'';
       if(r.volt!=null){var vh=voltHealth(r.volt);lastInfo+=(lastInfo?'　·　':'')+'電壓 '+r.volt+'V <span style="color:'+vh.color+';font-weight:700">'+vh.label+'</span>';}
     }else{
-      left=r.since==null?'尚無紀錄':'已跑 '+fmtNum(r.since)+' km';right='週期 '+fmtNum(r.track);
+      left=r.since==null?'尚無紀錄':'已跑 '+fmtNum(r.since)+' km';
+      right=(item.ref?'參考 ':'週期 ')+fmtNum(r.track);
       lastInfo=r.last?'上次 '+fmtNum(r.last.mileage)+' km'+(r.last.date?'（'+r.last.date.slice(0,7)+'）':''):'';
     }
     return'<div class="gauge"><div class="gtop"><span class="gname">'+r.label+'</span><span class="badge '+cls+'">'+txt+'</span></div>'
@@ -657,9 +686,14 @@
       +'<div class="gmeta"><span class="km">'+left+'</span><span>'+right+'</span></div>'
       +(lastInfo?'<div class="glast">'+lastInfo+'</div>':'')+'</div>';
   }
+
   function renderReminders(){
     var due=0,soon=0;
-    SYSTEMS.forEach(function(s){s.items.forEach(function(it){var r=resolveItem(it);if(!r||r.ratio==null)return;if(r.ratio>=1)due++;else if(r.ratio>=0.8)soon++;});});
+    SYSTEMS.forEach(function(s){s.items.forEach(function(it){
+      if(it.ref)return;
+      var r=resolveItem(it);if(!r||r.ratio==null)return;
+      if(r.ratio>=1)due++;else if(r.ratio>=0.8)soon++;
+    });});
     var html='';
     if(due>0||soon>0) html+='<div class="duebanner">'+(due>0?'<span class="db-due">'+due+' 項該換</span>':'')+(soon>0?'<span class="db-soon">'+soon+' 項快到</span>':'')+'</div>';
     SYSTEMS.forEach(function(sys){
@@ -701,12 +735,63 @@
     document.getElementById('spec').innerHTML=html||'<div class="empty">尚無資料</div>';
   }
 
+  function monthlyMileage(){
+    var pts=state.records.filter(function(r){return r.mileage!=null&&r.date;})
+      .map(function(r){return{date:r.date,mileage:r.mileage};})
+      .sort(function(a,b){return a.date.localeCompare(b.date)||a.mileage-b.mileage;});
+    var clean=[],mx=-1;
+    pts.forEach(function(p){if(p.mileage>=mx){clean.push(p);mx=p.mileage;}});
+    var months={};
+    function add(ym,km){months[ym]=(months[ym]||0)+km;}
+    for(var i=1;i<clean.length;i++){
+      var a=clean[i-1],b=clean[i];
+      var d1=new Date(a.date),d2=new Date(b.date);
+      var totalDays=Math.max(1,Math.round((d2-d1)/864e5));
+      var perDay=(b.mileage-a.mileage)/totalDays;
+      var cur=new Date(d1);
+      while(cur<d2){
+        var monthEnd=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+        var segEnd=monthEnd<d2?monthEnd:d2;
+        var days=(segEnd-cur)/864e5;
+        var ym=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0');
+        add(ym,days*perDay);
+        cur=segEnd;
+      }
+    }
+    return Object.keys(months).sort().map(function(k){return{ym:k,km:Math.round(months[k])};});
+  }
+
+  function renderMonthly(){
+    var arr=monthlyMileage();
+    var el=document.getElementById('monthly');
+    if(arr.length<2){el.innerHTML='<div class="empty">里程資料不足</div>';return;}
+    var tot=arr.reduce(function(s,m){return s+m.km;},0);
+    var avg=tot/arr.length;
+    var maxM=arr.reduce(function(a,m){return m.km>a.km?m:a;});
+    var last12=arr.slice(-12),avg12=last12.reduce(function(s,m){return s+m.km;},0)/last12.length;
+    var maxKm=maxM.km||1,bars='',axis='';
+    arr.forEach(function(m,i){
+      var h=Math.max(2,Math.round(m.km/maxKm*116));
+      var recent=i===arr.length-1;
+      bars+='<div class="mbar'+(recent?' recent':'')+'" style="height:'+h+'px" title="'+m.ym+' · '+fmtNum(m.km)+' km"></div>';
+      var mo=m.ym.slice(5);
+      axis+='<div class="myr">'+((mo==='01'||i===0)?m.ym.slice(0,4):'')+'</div>';
+    });
+    el.innerHTML='<div class="mstats">'
+      +'<div class="mstat"><div class="k">平均 / 月</div><div class="v">'+fmtNum(Math.round(avg))+'<small> km</small></div></div>'
+      +'<div class="mstat"><div class="k">最高月</div><div class="v">'+fmtNum(maxM.km)+'<small> km · '+maxM.ym.slice(2)+'</small></div></div>'
+      +'<div class="mstat"><div class="k">近12月 / 月</div><div class="v">'+fmtNum(Math.round(avg12))+'<small> km</small></div></div>'
+      +'</div>'
+      +'<div class="mscroll"><div class="mchart">'+bars+'</div><div class="maxis">'+axis+'</div></div>';
+    var sc=el.querySelector('.mscroll');if(sc)sc.scrollLeft=sc.scrollWidth;
+  }
+
   function renderCostBars(){
     var sums={};
     state.records.forEach(function(r){if(typeof r.cost==='number')sums[r.cat]=(sums[r.cat]||0)+r.cost;});
     var arr=Object.keys(sums).map(function(k){return{cat:k,v:sums[k]};}).sort(function(a,b){return b.v-a.v;});
     var max=arr.length?arr[0].v:1,html='';
-    arr.forEach(function(o){ html+='<div class="cb"><span>'+CATS[o.cat].label+'</span><span class="cbar" style="width:'+(o.v/max*100)+'%;background:'+CATS[o.cat].color+';"></span><span class="cval">'+fmtMoney(o.v)+'</span></div>'; });
+    arr.forEach(function(o){html+='<div class="cb"><span>'+CATS[o.cat].label+'</span><span class="cbar" style="width:'+(o.v/max*100)+'%;background:'+CATS[o.cat].color+';"></span><span class="cval">'+fmtMoney(o.v)+'</span></div>';});
     document.getElementById('costbars').innerHTML=html||'<div class="empty">尚無花費資料</div>';
   }
 
@@ -753,7 +838,7 @@
     Array.prototype.forEach.call(list.querySelectorAll('[data-del]'),function(el){el.onclick=function(){delRec(el.getAttribute('data-del'));};});
   }
 
-  function renderAll(){renderStats();renderReminders();renderSpec();renderCostBars();renderFuel();renderFilters();renderList();}
+  function renderAll(){renderStats();renderReminders();renderSpec();renderCostBars();renderMonthly();renderFuel();renderFilters();renderList();}
 
   function fillCatSelect(){
     document.getElementById('fCat').innerHTML=Object.keys(CATS).map(function(k){return'<option value="'+k+'">'+CATS[k].label+'</option>';}).join('');
