@@ -377,8 +377,12 @@
   function m(spec,iv,brakeCode){
     var cooling = /水冷/.test(spec) ? 'water' : (/空冷|氣冷/.test(spec) ? 'air' : null);
     var isGear = /檔車|重機|越野/.test(spec);
+    var gear = /檔車|打檔|越野/.test(spec);  // 鏈條傳動的打檔車
+    var ev = /電動/.test(spec);
+    // 電動車傳動：鏈條 / 輪轂直驅 / 皮帶（預設皮帶，如 Gogoro）
+    var evDrive = ev ? (/鏈條|鍊條/.test(spec)?'chain':(/輪轂|直驅|hub/i.test(spec)?'hub':'belt')) : null;
     var brake = (brakeCode&&BRAKE_MAP[brakeCode]) || (isGear?{f:'disc',r:'disc'}:{f:'disc',r:'drum'});
-    return {spec:spec,intervals:iv,ev:/電動/.test(spec),cooling:cooling,brake:brake};
+    return {spec:spec,intervals:iv,ev:ev,cooling:cooling,brake:brake,gear:gear,evDrive:evDrive};
   }
   var MOTO_DB = {
     'Yamaha':{
@@ -584,14 +588,23 @@
       var coolNote = d.cooling==='water' ? '<br><b style="color:#0E7490;">水冷車</b> — 含冷卻液 / 水箱精提醒' : (d.cooling==='air' ? '<br><span style="color:#6B6E76;">氣冷車 — 無水箱，不顯示冷卻液</span>' : '');
       var brakeNote='';
       if(d.brake){ var bt=(d.brake.f==='disc'?'前碟':'前鼓')+(d.brake.r==='disc'?'後碟':'後鼓'); brakeNote='<br><b style="color:#C0392B;">煞車</b> — '+bt+(d.brake.r==='drum'?'（後鼓煞，無後碟盤提醒）':''); }
-      info.innerHTML='<b>原廠建議週期</b>　'+parts.join('　·　')+coolNote+brakeNote;
+      var transNote;
+      if(d.ev){
+        var evd = d.evDrive==='chain' ? '鏈條傳動（鏈條/齒盤）' : (d.evDrive==='hub' ? '輪轂直驅（無傳動耗材）' : '皮帶傳動');
+        transNote = '<br><b style="color:#7C3AED;">傳動</b> — 電動 · '+evd;
+      } else if(d.gear){
+        transNote = '<br><b style="color:#BE5A1E;">傳動</b> — 鏈條打檔（鏈條/齒盤/離合器片，無皮帶普利珠）';
+      } else {
+        transNote = '<br><b style="color:#BE5A1E;">傳動</b> — 無段變速 CVT（皮帶/普利珠）';
+      }
+      info.innerHTML='<b>原廠建議週期</b>　'+parts.join('　·　')+coolNote+brakeNote+transNote;
       info.style.display='block';
       }
     }
     var dname = d.name || modelKey.replace(/\s*\([^)]*\)\s*$/,'').trim();
     if(nameId){ var ne=document.getElementById(nameId); if(ne) ne.value=dname; }
     if(specId){ var se=document.getElementById(specId); if(se) se.value=d.spec; }
-    if(intervalsStore!=null){ intervalsStore.modelIntervals=d.intervals; intervalsStore.modelKey=brand+'|'+modelKey; intervalsStore.modelPicked=true; intervalsStore.ev=!!d.ev; intervalsStore.cooling=d.cooling||null; intervalsStore.brake=d.brake||null; }
+    if(intervalsStore!=null){ intervalsStore.modelIntervals=d.intervals; intervalsStore.modelKey=brand+'|'+modelKey; intervalsStore.modelPicked=true; intervalsStore.ev=!!d.ev; intervalsStore.cooling=d.cooling||null; intervalsStore.brake=d.brake||null; intervalsStore.gear=!!d.gear; intervalsStore.evDrive=d.evDrive||null; }
   }
 
   var _pendingIntervals={};
@@ -822,7 +835,7 @@
     var spec = document.getElementById('veSpec').value.trim();
     var id = document.getElementById('veId').value;
     var extra = {};
-    if(_pendingIntervals.modelPicked){ extra.modelIntervals=_pendingIntervals.modelIntervals||null; extra.modelKey=_pendingIntervals.modelKey; extra.modelPicked=true; extra.ev=!!_pendingIntervals.ev; extra.cooling=_pendingIntervals.cooling||null; extra.brake=_pendingIntervals.brake||null; }
+    if(_pendingIntervals.modelPicked){ extra.modelIntervals=_pendingIntervals.modelIntervals||null; extra.modelKey=_pendingIntervals.modelKey; extra.modelPicked=true; extra.ev=!!_pendingIntervals.ev; extra.cooling=_pendingIntervals.cooling||null; extra.brake=_pendingIntervals.brake||null; extra.gear=!!_pendingIntervals.gear; extra.evDrive=_pendingIntervals.evDrive||null; }
     _pendingIntervals={};
     if(id){
       state.vehicles = state.vehicles.map(function(v){
@@ -875,6 +888,8 @@
     if(_pendingIntervals.ev) vobj.ev=true;
     if(_pendingIntervals.cooling) vobj.cooling=_pendingIntervals.cooling;
     if(_pendingIntervals.brake) vobj.brake=_pendingIntervals.brake;
+    if(_pendingIntervals.gear) vobj.gear=true;
+    if(_pendingIntervals.evDrive) vobj.evDrive=_pendingIntervals.evDrive;
     _pendingIntervals={};
     state.vehicles = [vobj];
     saveVehicles();
@@ -942,26 +957,46 @@
   }
 
   // ---- Render: Reminders ----
-  var SYSTEMS=[
-    {name:'引擎',color:'#1B4FD0',items:[{cat:'oil'},{cat:'plug'},{label:'空濾',re:/空濾/,track:6000,color:'#0E7490'}]},
-    {name:'傳動系統',color:'#BE5A1E',items:[
-      {cat:'gear'},{label:'皮帶',re:/皮帶/,track:15000,color:'#BE5A1E'},
-      {label:'普利珠',re:/普利珠/,track:12000,color:'#B5781A',rollers:true},
-      {label:'普利盤 / 滑件',re:/普利盤|滑件|楓葉盤/,track:20000,color:'#7C3AED'},
-      {label:'離合器 / 碗公',re:/離合器|碗公|牽轉具/,track:30000,color:'#0E7490'},
-      {label:'傳動小海綿',re:/小海綿|傳動.*海綿/,track:5000,color:'#0D9488'}
-    ]},
-    {name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]},
-    {name:'電系',color:'#5B6470',items:[{cat:'battery',timeBased:true,trackMonths:30,color:'#5B6470'}]}
-  ];
-  // 電動車專用耗材清單（無機油/空濾/火星塞/12V電瓶；有減速箱齒輪油、傳動皮帶、煞車、輪胎、冷卻液）
-  var EV_SYSTEMS=[
-    {name:'動力 / 傳動',color:'#1B4FD0',items:[
-      {cat:'gear',label:'減速箱齒輪油'},
-      {label:'傳動皮帶',re:/皮帶/,track:24000,color:'#BE5A1E'}
-    ]},
-    {name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]}
-  ];
+  var ENGINE_GROUP={name:'引擎',color:'#1B4FD0',items:[{cat:'oil'},{cat:'plug'},{label:'空濾',re:/空濾/,track:6000,color:'#0E7490'}]};
+  // 速克達：無段變速（CVT）傳動
+  var CVT_TRANS_GROUP={name:'傳動系統（CVT）',color:'#BE5A1E',items:[
+    {cat:'gear'},{label:'皮帶',re:/皮帶/,track:15000,color:'#BE5A1E'},
+    {label:'普利珠',re:/普利珠/,track:12000,color:'#B5781A',rollers:true},
+    {label:'普利盤 / 滑件',re:/普利盤|滑件|楓葉盤/,track:20000,color:'#7C3AED'},
+    {label:'離合器 / 碗公',re:/離合器|碗公|牽轉具/,track:30000,color:'#0E7490'},
+    {label:'傳動小海綿',re:/小海綿|傳動.*海綿/,track:5000,color:'#0D9488'}
+  ]};
+  // 打檔車 / 檔車：鏈條傳動（無皮帶/普利珠/CVT齒輪油）
+  var CHAIN_TRANS_GROUP={name:'傳動系統（鏈條）',color:'#BE5A1E',items:[
+    {label:'鏈條 / 鏈條組',re:/鏈條|鍊條|鏈條組|chain/i,track:25000,color:'#BE5A1E'},
+    {label:'前齒盤（鏈輪）',re:/前.*齒盤|前.*鏈輪|前齒/,track:25000,color:'#B5781A'},
+    {label:'後齒盤（鏈輪）',re:/後.*齒盤|後.*鏈輪|後齒/,track:25000,color:'#7C3AED'},
+    {label:'離合器片',re:/離合器片|離合器|clutch/i,track:30000,color:'#0E7490'}
+  ]};
+  var SUSP_GROUP={name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]};
+  var ELEC_GROUP={name:'電系',color:'#5B6470',items:[{cat:'battery',timeBased:true,trackMonths:30,color:'#5B6470'}]};
+  var SYSTEMS=[ENGINE_GROUP,CVT_TRANS_GROUP,SUSP_GROUP,ELEC_GROUP];
+  // 電動車：無機油/空濾/火星塞/12V電瓶；傳動依車款分皮帶/鏈條/輪轂直驅
+  // 判斷電動車傳動方式
+  function evDriveType(){
+    var v=activeVehicle(); if(!v||!v.ev) return null;
+    if(v.evDrive) return v.evDrive;
+    var s=v.spec||'';
+    return /鏈條|鍊條/.test(s)?'chain':(/輪轂|直驅/.test(s)?'hub':'belt');
+  }
+  // 依電動車傳動方式產生傳動群組
+  function evTransGroup(){
+    var d=evDriveType(), items=[];
+    if(d!=='hub') items.push({cat:'gear',label:'減速箱齒輪油'});
+    if(d==='chain'){
+      items.push({label:'鏈條 / 鏈條組',re:/鏈條|鍊條|chain/i,track:20000,color:'#BE5A1E'});
+      items.push({label:'後齒盤（鏈輪）',re:/後.*齒盤|後.*鏈輪|齒盤|鏈輪/,track:20000,color:'#7C3AED'});
+    }else if(d!=='hub'){
+      items.push({label:'傳動皮帶',re:/皮帶/,track:24000,color:'#BE5A1E'});
+    }
+    return {name:'動力 / 傳動',color:'#1B4FD0',items:items};
+  }
+  var SUSP_GROUP_EV={name:'懸吊 / 輪胎',color:'#2E7D52',items:[{cat:'fork'},{cat:'tire_f'},{cat:'tire_r'}]};
   // 水冷系統群組（依車型只對水冷車顯示）
   var COOLING_GROUP={name:'冷卻 / 散熱',color:'#0E7490',items:[
     {cat:'coolant'}
@@ -1000,9 +1035,18 @@
     }
     return {name:'煞車系統',color:'#C0392B',items:items};
   }
+  // 判斷是否為鏈條傳動打檔車
+  function isGearBike(){
+    var v=activeVehicle(); if(!v||v.ev) return false;
+    if(v.gear!=null) return !!v.gear;
+    return /檔車|打檔|越野/.test(v.spec||'');
+  }
   function activeSystems(){
     var v=activeVehicle();
-    var base=(v&&v.ev)?EV_SYSTEMS.slice():SYSTEMS.slice();
+    var base;
+    if(v&&v.ev) base=[evTransGroup(),SUSP_GROUP_EV];
+    else if(isGearBike()) base=[ENGINE_GROUP,CHAIN_TRANS_GROUP,SUSP_GROUP,ELEC_GROUP];
+    else base=SYSTEMS.slice();
     var idx=base.findIndex(function(s){return /懸吊/.test(s.name);});
     if(idx<0) idx=base.length;
     var inject=[brakeGroup()];
@@ -1065,7 +1109,7 @@
   function itemCat(item){
     if(item.cat) return item.cat;
     var L=item.label||'';
-    if(/皮帶|普利|離合|碗公|滑件|楓葉|海綿|傳動/.test(L)) return 'trans';
+    if(/皮帶|普利|離合|碗公|滑件|楓葉|海綿|傳動|鏈條|鍊條|齒盤|鏈輪/.test(L)) return 'trans';
     if(/煞車|來令|碟盤|蹄片/.test(L)) return 'brake';
     if(/冷卻|水箱/.test(L)) return 'coolant';
     if(/前叉/.test(L)) return 'fork';
@@ -1113,6 +1157,7 @@
     if(due>0||soon>0) html+='<div class="duebanner">'+(due>0?'<span class="db-due">'+due+' 項該換</span>':'')+(soon>0?'<span class="db-soon">'+soon+' 項快到</span>':'')+'</div>';
     SYS.forEach(function(sys){
       var cards=sys.items.map(gaugeCard).join('');
+      if(!cards) return;
       html+='<div class="sysgroup"><div class="syshead"><span class="sysbar" style="background:'+sys.color+';"></span>'+sys.name+'</div><div class="gauges">'+cards+'</div></div>';
     });
     var rem=document.getElementById('reminders');
@@ -1274,12 +1319,18 @@
 
   var EV_HIDE_CATS={oil:1,air:1,plug:1,engine:1};
   function fillCatSelect(){
-    var v=activeVehicle(), isEV=!!(v&&v.ev), isWater=coolingType()==='water';
+    var v=activeVehicle(), isEV=!!(v&&v.ev), isWater=coolingType()==='water', isGear=isGearBike();
     document.getElementById('fCat').innerHTML=Object.keys(CATS).filter(function(k){
       if(isEV&&EV_HIDE_CATS[k]) return false;       // 電動車隱藏機油/空濾/火星塞/引擎
       if(k==='coolant'&&!isWater) return false;     // 非水冷車隱藏冷卻液
+      if(k==='gear'&&isGear) return false;          // 打檔車無 CVT 齒輪油（共用引擎機油）
       return true;
-    }).map(function(k){return'<option value="'+k+'">'+CATS[k].label+(k==='gear'&&isEV?'（減速箱）':'')+'</option>';}).join('');
+    }).map(function(k){
+      var lbl=CATS[k].label;
+      if(k==='gear'&&isEV) lbl+='（減速箱）';
+      if(k==='trans'&&isGear) lbl='傳動（鏈條/齒盤）';
+      return'<option value="'+k+'">'+lbl+'</option>';
+    }).join('');
   }
   function startEdit(id){
     var r=state.records.filter(function(x){return x.id===id;})[0];if(!r)return;
